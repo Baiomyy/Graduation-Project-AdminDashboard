@@ -1,0 +1,152 @@
+<div class="card">
+  <div class="card-header">
+    <h4 class="card-title" *ngIf="!isShowingPharmacies">Representative</h4>
+    <h4 class="card-title" *ngIf="isShowingPharmacies">Pharmacies for {{ selectedRepresentative?.name }}</h4>
+    <p class="card-category" *ngIf="!isShowingPharmacies">Users Table</p>
+    <p class="card-category" *ngIf="isShowingPharmacies">Pharmacies Table</p>
+    
+    <!-- Back button when showing pharmacies -->
+    <button *ngIf="isShowingPharmacies" class="btn btn-secondary btn-sm float-right" style="margin-top: -38px; margin-right: 10px;" (click)="backToRepresentatives()" data-bs-toggle="" data-bs-placement="">
+      <i class="la la-arrow-left"></i> Back to Representatives
+    </button>
+    
+    <!-- Add button only when showing representatives -->
+    <button *ngIf="!isShowingPharmacies" class="btn btn-primary btn-sm float-right" style="margin-top: -38px;" (click)="openAddModal()" data-bs-toggle="" data-bs-placement="">
+      <i class="la la-plus"></i> Add Representative
+    </button>
+  </div>
+  <div class="card-body">
+    <!-- Representatives Table -->
+    <table *ngIf="!isShowingPharmacies" class="table table-head-bg-success table-striped table-hover">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Code</th>
+          <th>Address</th>
+          <th>Governate</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rep of representatives; let i = index; trackBy: trackByRepId" style="cursor: pointer;" (click)="loadPharmaciesForRepresentative(rep)">
+          <td>{{ rep.id }}</td>
+          <td>{{ rep.name }}</td>
+          <td>{{ rep.code }}</td>
+          <td>{{ rep.address }}</td>
+          <td>{{ rep.governate }}</td>
+          <td>
+            <button class="btn btn-danger btn-sm" (click)="openDeleteModal(i); $event.stopPropagation()" data-bs-toggle="" data-bs-placement="">
+              <i class="la la-trash"></i> Delete
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pharmacies Table -->
+    <table *ngIf="isShowingPharmacies" class="table table-head-bg-info table-striped table-hover">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone Number</th>
+          <th>Governate</th>
+          <th>Username</th>
+          <th>Address</th>
+          <th>Area</th>
+          <th>Order Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pharmacy of pharmacies">
+          <td>{{ pharmacy.id }}</td>
+          <td>{{ pharmacy.name }}</td>
+          <td>{{ pharmacy.phoneNumber }}</td>
+          <td>{{ pharmacy.governate }}</td>
+          <td>{{ pharmacy.userName }}</td>
+          <td>{{ pharmacy.address }}</td>
+          <td>{{ pharmacy.areaName }}</td>
+          <td>{{ pharmacy.orderCount ?? '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Loading indicator for pharmacies -->
+    <div *ngIf="isShowingPharmacies && loadingPharmacies" class="text-center p-3">
+      <i class="la la-spinner la-spin"></i> Loading pharmacies...
+      <!-- Debug info -->
+      <div class="small text-muted">
+        Debug: isShowingPharmacies={{isShowingPharmacies}}, loadingPharmacies={{loadingPharmacies}}, pharmacies.length={{pharmacies.length}}
+      </div>
+    </div>
+
+    <!-- No data message -->
+    <div *ngIf="isShowingPharmacies && pharmacies.length === 0 && !loadingPharmacies" class="text-center p-3">
+      <p>No pharmacies found for this representative.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Add Representative Modal -->
+<div *ngIf="showAddModal" class="modal-overlay" (click)="closeAddModal()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1050; display: flex; align-items: center; justify-content: center;">
+  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 600px; width: 60vw;">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Add Representative</h5>
+        <button type="button" class="close" (click)="closeAddModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="submitAddRepresentative()" #addRepForm="ngForm" autocomplete="off">
+        <div class="modal-body">
+          <div class="form-group" *ngFor="let field of fields">
+            <label [textContent]="field | titlecase"></label>
+            <input
+              [type]="field === 'password' ? 'password' : (field === 'email' ? 'email' : (field === 'phone' ? 'tel' : 'text'))"
+              class="form-control"
+              [name]="field"
+              [(ngModel)]="newRepresentative[field]"
+              [required]="true"
+              [minlength]="field === 'password' ? 8 : null"
+              [maxlength]="field === 'name' ? 100 : (field === 'address' ? 200 : (field === 'governate' ? 50 : null))"
+            />
+            <div *ngIf="validationErrors[field.charAt(0).toUpperCase() + field.slice(1)]" class="text-danger small">
+              <div *ngFor="let err of validationErrors[field.charAt(0).toUpperCase() + field.slice(1)]">{{ err }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeAddModal()" data-bs-toggle="" data-bs-placement="">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="addRepForm.invalid || submitting" data-bs-toggle="" data-bs-placement="">{{ submitting ? 'Adding...' : 'Add' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div *ngIf="showDeleteModal" class="modal-overlay" (click)="closeDeleteModal()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1050; display: flex; align-items: center; justify-content: center;">
+  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 400px; width: 30vw;">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="close" (click)="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this representative?</p>
+        <p *ngIf="deleteIndex !== null && representatives[deleteIndex]">
+          <strong>Name:</strong> {{ representatives[deleteIndex].name }}<br />
+          <strong>Code:</strong> {{ representatives[deleteIndex].code }}
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deleting" data-bs-toggle="" data-bs-placement="">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDeleteRepresentative()" [disabled]="deleting" data-bs-toggle="" data-bs-placement="">{{ deleting ? 'Deleting...' : 'Delete' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div *ngIf="notification" class="alert" [ngClass]="{'alert-success': notification.type === 'success', 'alert-danger': notification.type === 'error'}" style="position: fixed; top: 80px; right: 30px; z-index: 2000; min-width: 200px;">
+  {{ notification.message }}
+</div>

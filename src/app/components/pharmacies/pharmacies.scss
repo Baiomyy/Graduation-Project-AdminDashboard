@@ -1,0 +1,14 @@
+// Pharmacies component styles
+.card-body {
+  i {
+    font-size: 2rem;
+    margin: 0.5rem;
+    color: #007bff;
+    
+    &:hover {
+      color: #0056b3;
+      transform: scale(1.1);
+      transition: all 0.3s ease;
+    }
+  }
+} 
