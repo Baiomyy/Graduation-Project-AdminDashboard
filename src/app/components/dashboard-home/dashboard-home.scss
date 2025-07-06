@@ -1,0 +1,168 @@
+// Basic Bootstrap Dashboard Styles
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// Global Typography
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+// Basic Dashboard Card Styles
+.dashboard-card {
+  border-radius: 12px !important;
+  transition: all 0.3s ease;
+  border: none !important;
+  overflow: hidden;
+  height: 100%;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+}
+
+.loading-card {
+  border-radius: 12px !important;
+  border: none !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.icon-container {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  i {
+    font-size: 24px;
+    color: #ffffff;
+  }
+}
+
+.pharmacy-icon {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+}
+
+.warehouse-icon {
+  background: linear-gradient(135deg, #10b981, #047857);
+}
+
+.representative-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+// Progress Bar Styles
+.progress {
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pharmacy-progress {
+  background: linear-gradient(90deg, #3b82f6, #1e40af);
+}
+
+.warehouse-progress {
+  background: linear-gradient(90deg, #10b981, #047857);
+}
+
+.representative-progress {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+// Card Content Styles
+.card-title {
+  font-weight: 700;
+  font-size: 2rem;
+  color: #1e293b;
+  margin: 0;
+}
+
+.card-subtitle {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.card-text {
+  font-size: 0.875rem;
+  color: #64748b;
+  
+  i {
+    margin-right: 0.5rem;
+  }
+}
+
+// Page Header Styles
+.page-header {
+  margin-bottom: 2rem;
+  
+  .page-title {
+    font-weight: 700;
+    font-size: 1.875rem;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    
+    i {
+      margin-right: 0.75rem;
+      color: #3b82f6;
+    }
+  }
+  
+  p {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+  }
+}
+
+// Stats Section Styles
+.stat-item {
+  padding: 1rem;
+  
+  .stat-number {
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .card-header-section {
+    flex-direction: column;
+    text-align: center;
+    
+    .icon-container {
+      margin-right: 0;
+      margin-bottom: 1rem;
+    }
+  }
+  
+  .card-title {
+    font-size: 1.5rem;
+  }
+  
+  .stat-item .stat-number {
+    font-size: 1.5rem;
+  }
+}
