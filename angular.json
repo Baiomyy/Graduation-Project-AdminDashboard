@@ -25,6 +25,7 @@
               "src/favicon.ico"
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss",
               "src/assets/css/bootstrap.min.css",
               "src/assets/css/ready.css",
@@ -83,7 +84,8 @@
               "buildTarget": "ready-dashboard:build:production"
             },
             "development": {
-              "buildTarget": "ready-dashboard:build:development"
+              "buildTarget": "ready-dashboard:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"
@@ -103,6 +105,7 @@
               }
             ],
             "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
             ]
           }

@@ -1,1 +1,55 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Fix for -ms-high-contrast deprecation warnings */
+@media (forced-colors: active) {
+  /* Use forced-colors instead of -ms-high-contrast */
+  .btn, .form-control, .table, .card {
+    forced-color-adjust: none;
+  }
+}
+
+/* Global styles for better UX */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table {
+  background-color: white;
+}
+
+/* Loading spinner styles */
+.spinner-border {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: text-bottom;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pagination improvements */
+.pagination .page-link {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pagination .page-item.disabled .page-link {
+  cursor: not-allowed;
+}
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
