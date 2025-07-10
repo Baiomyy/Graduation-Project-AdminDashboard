@@ -935,7 +935,9 @@
                     }}
                   </td>
                   <td>{{ medicine.discount * 100 | number : "1.0-0" }}%</td>
-                  <td>{{ medicine.medicine.drug || "N/A" }}</td>
+
+                  <td>{{ medicine.medicine?.drug || "N/A" }}</td>
+
                   <td>
                     <!-- Action buttons commented out as Excel upload is the only method
                     <div class="btn-group" role="group">
