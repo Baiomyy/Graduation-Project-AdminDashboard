@@ -1,1 +1,110 @@
- 
+.selected-areas-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+    background-color: #007bff;
+    color: white;
+    
+    .close {
+      margin-left: 4px;
+      font-size: 0.7rem;
+      opacity: 0.7;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: white;
+      
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+.form-group {
+  margin-bottom: 0.75rem;
+  
+  label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    display: block;
+    font-size: 0.875rem;
+  }
+  
+  .form-control {
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    font-size: 0.875rem;
+    
+    &:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+  }
+  
+  select[multiple] {
+    min-height: 80px;
+    max-height: 120px;
+  }
+  
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+}
+
+.modal-content {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0;
+  padding: 0.75rem 1rem;
+  
+  .modal-title {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #dee2e6;
+  border-radius: 0 0 8px 8px;
+  padding: 0.75rem 1rem;
+}
+
+.text-muted.small {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .modal-dialog {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem) !important;
+  }
+  
+  .row {
+    margin: 0;
+  }
+  
+  .col-md-6 {
+    padding: 0 0.5rem;
+  }
+} 
