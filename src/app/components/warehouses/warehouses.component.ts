@@ -21,6 +21,7 @@ import {
   WarehouseOrder,
   Governorate,
   Area,
+  WarehouseCustomDetails, // <-- add this import
 } from '../../services/warehouse.service';
 import { Subscription } from 'rxjs';
 
@@ -55,7 +56,7 @@ export class Warehouses implements OnInit, OnDestroy {
 
   // Warehouse details properties
   selectedWarehouseId: number | null = null;
-  warehouseDetails: WarehouseDetails | null = null;
+  warehouseDetails: WarehouseCustomDetails | null = null;
   showDetails: boolean = false;
   loadingDetails: boolean = false;
 
@@ -66,6 +67,9 @@ export class Warehouses implements OnInit, OnDestroy {
   medicinesCurrentPage: number = 1;
   medicinesPageSize: number = 10;
   medicinesTotalCount: number = 0;
+  medicinesSearchTerm: string = '';
+  medicinesDrugTypeFilter: string = '';
+  filteredMedicines: WarehouseMedicine[] = [];
 
   // Orders properties
   orders: WarehouseOrder[] = [];
@@ -719,7 +723,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.warehouseDetails = null;
     this.cdr.detectChanges();
 
-    this.warehouseService.getWarehouseById(warehouseId).subscribe({
+    this.warehouseService.getWarehouseCustomById(warehouseId).subscribe({
       next: (details) => {
         this.ngZone.run(() => {
           this.warehouseDetails = details;
@@ -729,10 +733,8 @@ export class Warehouses implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error loading warehouse details:', error);
-        this.ngZone.run(() => {
-          this.loadingDetails = false;
-          this.cdr.detectChanges();
-        });
+        this.loadingDetails = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -770,6 +772,7 @@ export class Warehouses implements OnInit, OnDestroy {
           this.ngZone.run(() => {
             this.medicines = response.items || [];
             this.medicinesTotalCount = response.totalCount || 0;
+            this.applyMedicinesFilters();
             this.loadingMedicines = false;
             console.log('Medicines array updated:', this.medicines);
             this.cdr.detectChanges();
@@ -783,6 +786,40 @@ export class Warehouses implements OnInit, OnDestroy {
           });
         },
       });
+  }
+
+  applyMedicinesFilters(): void {
+    let filtered = this.medicines;
+    // Filter by search term (name or arabicName)
+    if (this.medicinesSearchTerm && this.medicinesSearchTerm.trim() !== '') {
+      const term = this.medicinesSearchTerm.trim().toLowerCase();
+      filtered = filtered.filter(
+        (med) =>
+          med.medicine?.name?.toLowerCase().includes(term) ||
+          med.medicine?.arabicName?.toLowerCase().includes(term)
+      );
+    }
+    // Filter by drug type
+    if (this.medicinesDrugTypeFilter !== '') {
+      filtered = filtered.filter((med) => {
+        // Cosmetic = 0, Drug = 1
+        if (this.medicinesDrugTypeFilter === '0') {
+          return med.medicine?.drug === 'Prescription';
+        } else if (this.medicinesDrugTypeFilter === '1') {
+          return med.medicine?.drug === 'Over the Counter';
+        }
+        return true;
+      });
+    }
+    this.filteredMedicines = filtered;
+  }
+
+  onMedicinesSearchChange(): void {
+    this.applyMedicinesFilters();
+  }
+
+  onMedicinesDrugTypeFilterChange(): void {
+    this.applyMedicinesFilters();
   }
 
   onMedicinesPageChange(page: number): void {
@@ -1015,26 +1052,29 @@ export class Warehouses implements OnInit, OnDestroy {
 
   // Utility methods
   getStatusColor(status: string | boolean | undefined): string {
-    if (typeof status === 'boolean') {
-      return status ? 'success' : 'warning';
-    }
+    if (!status) return 'secondary';
 
-    if (typeof status === 'string') {
-      switch (status.toLowerCase()) {
-        case 'active':
-        case 'true':
-          return 'success';
-        case 'maintenance':
-        case 'false':
-          return 'warning';
-        case 'inactive':
-          return 'danger';
-        default:
-          return 'secondary';
-      }
-    }
+    const statusStr = status.toString().toLowerCase();
 
-    return 'secondary';
+    switch (statusStr) {
+      case 'delivered':
+      case 'completed':
+      case 'success':
+        return 'success';
+      case 'ordered':
+      case 'pending':
+      case 'processing':
+        return 'warning';
+      case 'returned':
+      case 'cancelled':
+      case 'failed':
+        return 'danger';
+      case 'in transit':
+      case 'shipped':
+        return 'info';
+      default:
+        return 'secondary';
+    }
   }
 
   getStatusText(warehouse: Warehouse): string {
