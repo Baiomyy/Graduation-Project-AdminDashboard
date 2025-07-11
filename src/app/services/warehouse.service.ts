@@ -992,4 +992,19 @@ export class WarehouseService {
       map((response) => response.totalCount || 0)
     );
   }
+
+  // Check if warehouse email exists
+  checkWarehouseEmailExists(email: string): Observable<boolean> {
+    return this.http
+      .get<{ exists: boolean }>(
+        `${this.baseUrl}/exists?email=${encodeURIComponent(email)}`
+      )
+      .pipe(
+        map((response) => response.exists),
+        catchError((error) => {
+          console.error('Error checking warehouse email existence:', error);
+          throw error;
+        })
+      );
+  }
 }
