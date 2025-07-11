@@ -1,8 +1,17 @@
 {
-  "/api": {
+  "/api/Order": {
     "target": "http://www.pharmaatoncepredeploy.somee.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/api": {
+    "target": "http://www.pharmaatoncepredeploy.somee.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": "/api"
+    }
   }
-} 
+}

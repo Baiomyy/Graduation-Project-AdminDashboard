@@ -81,6 +81,7 @@ export interface WarehouseMedicine {
   quantity: number;
   discount: number;
   medicine: Medicine;
+  finalprice?: number; // Add this line
 }
 
 export interface WarehouseOrder {
@@ -151,6 +152,43 @@ export interface ApiWarehouseMedicinesResponse {
   totalPages: number;
 }
 
+// New interfaces for the warehouse orders API
+export interface ApiOrderMedicine {
+  medicineId: number;
+  quantity: number;
+  price: number;
+}
+
+export interface ApiWarehouseOrder {
+  orderId: number;
+  totalPrice: number;
+  quantity: number;
+  status: string;
+  pharmacyId: number;
+  pharmacyName: string;
+  orderDate: string;
+  medicines: ApiOrderMedicine[];
+}
+
+export interface ApiWarehouseOrdersResponse {
+  message: string;
+  result: ApiWarehouseOrder[];
+}
+
+export interface WarehouseCustomDetails {
+  id: number;
+  name: string;
+  address: string;
+  governate: string;
+  isTrusted: boolean;
+  areaNames: string[];
+  imageUrl?: string;
+  email: string;
+  phone: string;
+  totalOrders: number;
+  totalMedicines: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -164,7 +202,7 @@ export class WarehouseService {
   private deleteUrl = `${this.baseUrl}`;
   private detailsUrl = `${this.baseUrl}/GetById`;
   private medicinesUrl = `${this.baseUrl}/Medicines`;
-  private ordersUrl = `${this.baseUrl}/Orders`;
+  private ordersUrl = '/api/Order/warehouse';
   private uploadExcelUrl = `${this.baseUrl}/UploadMedicines`;
   private updateWarehouseMedicinesUrl = `${this.baseUrl}/UpdateWarehouseMedicines`;
   private governoratesUrl = '/api/Locations/Governorates';
@@ -223,13 +261,7 @@ export class WarehouseService {
       }),
       catchError((error) => {
         console.error('Error fetching warehouses from API:', error);
-        return of({
-          items: this.getMockWarehouses(),
-          pageNumber: pageNumber,
-          pageSize: pageSize,
-          totalCount: 5,
-          totalPages: 1,
-        });
+        throw error;
       })
     );
   }
@@ -239,9 +271,23 @@ export class WarehouseService {
     return this.http.get<WarehouseDetails>(`${this.detailsUrl}/${id}`).pipe(
       catchError((error) => {
         console.error('Error fetching warehouse details:', error);
-        return of(this.getMockWarehouseDetails(id));
+        throw error;
       })
     );
+  }
+
+  // Get warehouse custom details by ID (new API)
+  getWarehouseCustomById(id: number): Observable<WarehouseCustomDetails> {
+    return this.http
+      .get<WarehouseCustomDetails>(
+        `/api/Warehouse/GetWarehouseCustomByIdAsync/${id}`
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching custom warehouse details:', error);
+          throw error;
+        })
+      );
   }
 
   // Create new warehouse
@@ -270,22 +316,6 @@ export class WarehouseService {
       }));
     }
 
-    // Mock medicines for testing
-    const wareHouseMedicines = [
-      {
-        medicineId: 2,
-        quantity: 100,
-        price: 25.5,
-        discount: 0.1,
-      },
-      {
-        medicineId: 3,
-        quantity: 75,
-        price: 15.75,
-        discount: 0.05,
-      },
-    ];
-
     const payload = {
       name: warehouse.name,
       address: warehouse.address,
@@ -299,7 +329,6 @@ export class WarehouseService {
           ? warehouse.isTrusted === 'true'
           : !!warehouse.isTrusted,
       wareHouseAreas: wareHouseAreas,
-      wareHouseMedicines: wareHouseMedicines,
     };
 
     console.log(
@@ -311,7 +340,6 @@ export class WarehouseService {
       warehouse.selectedWarehouseAreasWithPrice
     );
     console.log('Service: Mapped wareHouseAreas:', wareHouseAreas);
-    console.log('Service: Mock wareHouseMedicines:', wareHouseMedicines);
     console.log('Service: Creating warehouse with payload:', payload);
     console.log('Service: Using endpoint:', this.createUrl);
 
@@ -345,22 +373,6 @@ export class WarehouseService {
       }));
     }
 
-    // Mock medicines for testing
-    const wareHouseMedicines = [
-      {
-        medicineId: 2,
-        quantity: 100,
-        price: 25.5,
-        discount: 0.1,
-      },
-      {
-        medicineId: 3,
-        quantity: 75,
-        price: 15.75,
-        discount: 0.05,
-      },
-    ];
-
     const payload = {
       id: id,
       name: warehouse.name,
@@ -373,7 +385,6 @@ export class WarehouseService {
       isWarehouseApproved: warehouse.isWarehouseApproved || true,
       approvedByAdminId: warehouse.approvedByAdminId || '',
       wareHouseAreas: wareHouseAreas,
-      wareHouseMedicines: wareHouseMedicines,
       phone: warehouse.phone,
       email: warehouse.email, // Added email to payload
       imageUrl: warehouse.imageUrl || '', // Lowercase to match API expectation
@@ -465,6 +476,7 @@ export class WarehouseService {
                 wareHouseId: warehouseId,
                 quantity: item.quantity,
                 discount: item.discount,
+                finalprice: item.finalprice,
                 medicine: {
                   id: item.medicineId,
                   name: item.englishMedicineName,
@@ -493,13 +505,7 @@ export class WarehouseService {
         }),
         catchError((error) => {
           console.error('Error fetching warehouse medicines:', error);
-          console.log('Service: Returning mock data');
-          const mockData = {
-            items: this.getMockWarehouseMedicines(),
-            totalCount: 5,
-          };
-          console.log('Service: Mock data:', mockData);
-          return of(mockData);
+          throw error;
         })
       );
   }
@@ -526,21 +532,7 @@ export class WarehouseService {
       .pipe(
         catchError((error) => {
           console.error('Error adding medicine to warehouse:', error);
-          return of({
-            medicineId: Math.floor(Math.random() * 1000),
-            wareHouseId: warehouseId,
-            quantity: medicine.quantity || 0,
-            discount: medicine.discount || 0,
-            medicine: {
-              id: Math.floor(Math.random() * 1000),
-              name: 'New Medicine',
-              arabicName: 'دواء جديد',
-              description: 'Medicine description',
-              price: 0,
-              medicineUrl: '',
-              drug: 'Other',
-            },
-          });
+          throw error;
         })
       );
   }
@@ -559,21 +551,7 @@ export class WarehouseService {
       .pipe(
         catchError((error) => {
           console.error('Error updating warehouse medicine:', error);
-          return of({
-            medicineId: medicineId,
-            wareHouseId: warehouseId,
-            quantity: medicine.quantity || 0,
-            discount: medicine.discount || 0,
-            medicine: {
-              id: Math.floor(Math.random() * 1000),
-              name: 'Updated Medicine',
-              arabicName: 'دواء محدث',
-              description: 'Updated medicine description',
-              price: 0,
-              medicineUrl: '',
-              drug: 'Other',
-            },
-          });
+          throw error;
         })
       );
   }
@@ -588,7 +566,7 @@ export class WarehouseService {
       .pipe(
         catchError((error) => {
           console.error('Error deleting warehouse medicine:', error);
-          return of(true);
+          throw error;
         })
       );
   }
@@ -599,22 +577,71 @@ export class WarehouseService {
     pageNumber: number = 1,
     pageSize: number = 10
   ): Observable<{ items: WarehouseOrder[]; totalCount: number }> {
-    const params = new HttpParams()
-      .set('pageNumber', pageNumber.toString())
-      .set('pageSize', pageSize.toString());
+    console.log('Service: Getting orders for warehouse:', warehouseId);
+    console.log('Service: Using endpoint:', `${this.ordersUrl}/${warehouseId}`);
 
     return this.http
-      .get<{ items: WarehouseOrder[]; totalCount: number }>(
-        `${this.ordersUrl}/${warehouseId}`,
-        { params }
-      )
+      .get<ApiWarehouseOrdersResponse>(`${this.ordersUrl}/${warehouseId}`)
       .pipe(
+        map((response) => {
+          console.log('Service: API response:', response);
+
+          if (!response.result || response.result.length === 0) {
+            console.log(
+              'Service: No orders in response, returning empty array'
+            );
+            return {
+              items: [],
+              totalCount: 0,
+            };
+          }
+
+          // Transform API response to expected format
+          const transformedOrders: WarehouseOrder[] = response.result.map(
+            (item) => {
+              console.log('Service: Processing order:', item);
+
+              const transformed: WarehouseOrder = {
+                id: item.orderId,
+                orderNumber: `ORD-${item.orderId}`,
+                customerName: item.pharmacyName,
+                customerPhone: 'N/A', // Not available in new API
+                orderDate: item.orderDate,
+                deliveryDate: 'N/A', // Not available in new API
+                totalAmount: item.totalPrice,
+                status: item.status,
+                items: item.medicines.map((med) => ({
+                  id: med.medicineId,
+                  medicineName: `Medicine ID: ${med.medicineId}`,
+                  quantity: med.quantity,
+                  unitPrice: med.price,
+                  totalPrice: med.price * med.quantity,
+                })),
+              };
+
+              console.log('Service: Transformed order:', transformed);
+              return transformed;
+            }
+          );
+
+          console.log('Service: All transformed orders:', transformedOrders);
+
+          return {
+            items: transformedOrders,
+            totalCount: response.result.length,
+          };
+        }),
         catchError((error) => {
           console.error('Error fetching warehouse orders:', error);
-          return of({
-            items: this.getMockWarehouseOrders(),
-            totalCount: 3,
+          console.error('Error details:', {
+            status: error.status,
+            statusText: error.statusText,
+            error: error.error,
+            message: error.message,
+            url: error.url,
           });
+
+          throw error;
         })
       );
   }
@@ -929,7 +956,7 @@ export class WarehouseService {
     return this.http.get<Governorate[]>(this.governoratesUrl).pipe(
       catchError((error) => {
         console.error('Error fetching governorates:', error);
-        return of(this.getMockGovernorates());
+        throw error;
       })
     );
   }
@@ -941,7 +968,7 @@ export class WarehouseService {
     return this.http.get<any[]>('/api/Pharmacy/register').pipe(
       catchError((error) => {
         console.error('Error fetching governorates from Pharmacy API:', error);
-        return of([]);
+        throw error;
       })
     );
   }
@@ -955,7 +982,7 @@ export class WarehouseService {
       .pipe(
         catchError((error) => {
           console.error('Error fetching areas from Pharmacy API:', error);
-          return of([]);
+          throw error;
         })
       );
   }
@@ -964,353 +991,5 @@ export class WarehouseService {
     return this.getWarehouses(1, 1).pipe(
       map((response) => response.totalCount || 0)
     );
-  }
-
-  // Mock data methods
-  private getMockWarehouses(): Warehouse[] {
-    return [
-      {
-        id: 1,
-        name: 'Main Warehouse',
-        address: '123 Downtown Medical Center, Cairo',
-        phone: '01012345678',
-        email: 'main@warehouse.com',
-        governate: 'القاهرة',
-        warehouseLocationArea: 'وسط البلد',
-        imageUrl: 'https://example.com/warehouse1.jpg',
-        isTrusted: true,
-        isWarehouseApproved: true,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-        wareHouseAreas: [],
-      },
-      {
-        id: 2,
-        name: 'North Branch Warehouse',
-        address: '456 North Medical Plaza, Alexandria',
-        phone: '01012345679',
-        email: 'north@warehouse.com',
-        governate: 'الإسكندرية',
-        warehouseLocationArea: 'المحرمية',
-        imageUrl: 'https://example.com/warehouse2.jpg',
-        isTrusted: true,
-        isWarehouseApproved: true,
-        createdAt: '2024-01-20T10:00:00Z',
-        updatedAt: '2024-01-20T10:00:00Z',
-        wareHouseAreas: [],
-      },
-      {
-        id: 3,
-        name: 'South Distribution Center',
-        address: '789 South Healthcare Complex, Giza',
-        phone: '01012345680',
-        email: 'south@warehouse.com',
-        governate: 'الجيزة',
-        warehouseLocationArea: 'الدقي',
-        imageUrl: 'https://example.com/warehouse3.jpg',
-        isTrusted: true,
-        isWarehouseApproved: true,
-        createdAt: '2024-01-25T10:00:00Z',
-        updatedAt: '2024-01-25T10:00:00Z',
-        wareHouseAreas: [],
-      },
-      {
-        id: 4,
-        name: 'East Medical Hub',
-        address: '321 East Medical Hub, Cairo',
-        phone: '01012345681',
-        email: 'east@warehouse.com',
-        governate: 'القاهرة',
-        warehouseLocationArea: 'المعادي',
-        imageUrl: 'https://example.com/warehouse4.jpg',
-        isTrusted: false,
-        isWarehouseApproved: false,
-        createdAt: '2024-02-01T10:00:00Z',
-        updatedAt: '2024-02-01T10:00:00Z',
-        wareHouseAreas: [],
-      },
-      {
-        id: 5,
-        name: 'West Distribution Center',
-        address: '654 West Medical Center, Giza',
-        phone: '01012345682',
-        email: 'west@warehouse.com',
-        governate: 'الجيزة',
-        warehouseLocationArea: 'المهندسين',
-        imageUrl: 'https://example.com/warehouse5.jpg',
-        isTrusted: true,
-        isWarehouseApproved: true,
-        createdAt: '2024-02-05T10:00:00Z',
-        updatedAt: '2024-02-05T10:00:00Z',
-        wareHouseAreas: [],
-      },
-    ];
-  }
-
-  private getMockWarehouseDetails(id: number): WarehouseDetails {
-    const warehouse = this.getMockWarehouses().find((w) => w.id === id);
-    if (!warehouse) {
-      // Return a default warehouse if not found
-      return {
-        id: id,
-        name: 'Default Warehouse',
-        address: 'Default Address',
-        phone: '01000000000',
-        email: 'default@warehouse.com',
-        governate: 'Default Governorate',
-        warehouseLocationArea: 'Default Area',
-        imageUrl: 'https://example.com/default.jpg',
-        isTrusted: false,
-        isWarehouseApproved: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        wareHouseAreas: [],
-        totalMedicines: Math.floor(Math.random() * 100) + 50,
-        totalOrders: Math.floor(Math.random() * 200) + 100,
-      };
-    }
-
-    return {
-      ...warehouse,
-      totalMedicines: Math.floor(Math.random() * 100) + 50,
-      totalOrders: Math.floor(Math.random() * 200) + 100,
-    };
-  }
-
-  private getMockWarehouseMedicines(): WarehouseMedicine[] {
-    return [
-      {
-        medicineId: 1,
-        wareHouseId: 1,
-        quantity: 1500,
-        discount: 0.1,
-        medicine: {
-          id: 1,
-          name: 'Paracetamol 500mg',
-          arabicName: 'باراسيتامول 500 مجم',
-          description: 'Pain reliever and fever reducer',
-          price: 2.5,
-          medicineUrl: 'https://example.com/paracetamol.jpg',
-          drug: 'Pain Relief',
-        },
-      },
-      {
-        medicineId: 2,
-        wareHouseId: 1,
-        quantity: 800,
-        discount: 0.05,
-        medicine: {
-          id: 2,
-          name: 'Amoxicillin 250mg',
-          arabicName: 'أموكسيسيلين 250 مجم',
-          description: 'Antibiotic for bacterial infections',
-          price: 15.75,
-          medicineUrl: 'https://example.com/amoxicillin.jpg',
-          drug: 'Antibiotics',
-        },
-      },
-      {
-        medicineId: 3,
-        wareHouseId: 1,
-        quantity: 1200,
-        discount: 0.15,
-        medicine: {
-          id: 3,
-          name: 'Omeprazole 20mg',
-          arabicName: 'أوميبرازول 20 مجم',
-          description: 'Proton pump inhibitor for acid reflux',
-          price: 8.9,
-          medicineUrl: 'https://example.com/omeprazole.jpg',
-          drug: 'Gastrointestinal',
-        },
-      },
-      {
-        medicineId: 4,
-        wareHouseId: 1,
-        quantity: 950,
-        discount: 0.08,
-        medicine: {
-          id: 4,
-          name: 'Metformin 500mg',
-          arabicName: 'ميتفورمين 500 مجم',
-          description: 'Oral diabetes medicine',
-          price: 12.3,
-          medicineUrl: 'https://example.com/metformin.jpg',
-          drug: 'Diabetes',
-        },
-      },
-      {
-        medicineId: 5,
-        wareHouseId: 1,
-        quantity: 2000,
-        discount: 0.12,
-        medicine: {
-          id: 5,
-          name: 'Ibuprofen 400mg',
-          arabicName: 'إيبوبروفين 400 مجم',
-          description: 'Non-steroidal anti-inflammatory drug',
-          price: 3.2,
-          medicineUrl: 'https://example.com/ibuprofen.jpg',
-          drug: 'Pain Relief',
-        },
-      },
-    ];
-  }
-
-  private getMockWarehouseOrders(): WarehouseOrder[] {
-    return [
-      {
-        id: 1,
-        orderNumber: 'ORD-2024-001',
-        customerName: 'Ahmed Hassan',
-        customerPhone: '01012345678',
-        orderDate: '2024-01-15T10:00:00Z',
-        deliveryDate: '2024-01-16T14:00:00Z',
-        totalAmount: 125.5,
-        status: 'Delivered',
-        items: [
-          {
-            id: 1,
-            medicineName: 'Paracetamol 500mg',
-            quantity: 20,
-            unitPrice: 2.5,
-            totalPrice: 50.0,
-          },
-          {
-            id: 2,
-            medicineName: 'Ibuprofen 400mg',
-            quantity: 15,
-            unitPrice: 3.2,
-            totalPrice: 48.0,
-          },
-          {
-            id: 3,
-            medicineName: 'Omeprazole 20mg',
-            quantity: 3,
-            unitPrice: 8.9,
-            totalPrice: 26.7,
-          },
-        ],
-      },
-      {
-        id: 2,
-        orderNumber: 'ORD-2024-002',
-        customerName: 'Sara Mohamed',
-        customerPhone: '01012345679',
-        orderDate: '2024-01-16T09:00:00Z',
-        deliveryDate: '2024-01-17T11:00:00Z',
-        totalAmount: 89.25,
-        status: 'In Transit',
-        items: [
-          {
-            id: 4,
-            medicineName: 'Amoxicillin 250mg',
-            quantity: 5,
-            unitPrice: 15.75,
-            totalPrice: 78.75,
-          },
-          {
-            id: 5,
-            medicineName: 'Paracetamol 500mg',
-            quantity: 4,
-            unitPrice: 2.5,
-            totalPrice: 10.5,
-          },
-        ],
-      },
-      {
-        id: 3,
-        orderNumber: 'ORD-2024-003',
-        customerName: 'Omar Ali',
-        customerPhone: '01012345680',
-        orderDate: '2024-01-17T14:00:00Z',
-        deliveryDate: '2024-01-18T16:00:00Z',
-        totalAmount: 156.8,
-        status: 'Pending',
-        items: [
-          {
-            id: 6,
-            medicineName: 'Metformin 500mg',
-            quantity: 10,
-            unitPrice: 12.3,
-            totalPrice: 123.0,
-          },
-          {
-            id: 7,
-            medicineName: 'Omeprazole 20mg',
-            quantity: 3,
-            unitPrice: 8.9,
-            totalPrice: 26.7,
-          },
-          {
-            id: 8,
-            medicineName: 'Ibuprofen 400mg',
-            quantity: 2,
-            unitPrice: 3.2,
-            totalPrice: 6.4,
-          },
-        ],
-      },
-    ];
-  }
-
-  private getMockGovernorates(): Governorate[] {
-    return [
-      {
-        id: 1,
-        name: 'القاهرة',
-        areas: [
-          { id: 1, name: 'وسط البلد' },
-          { id: 2, name: 'المعادي' },
-          { id: 3, name: 'مدينة نصر' },
-          { id: 4, name: 'الزمالك' },
-          { id: 5, name: 'مصر الجديدة' },
-        ],
-      },
-      {
-        id: 2,
-        name: 'الإسكندرية',
-        areas: [
-          { id: 6, name: 'سموحة' },
-          { id: 7, name: 'سيدي جابر' },
-          { id: 8, name: 'المنتزه' },
-          { id: 9, name: 'العجمي' },
-          { id: 10, name: 'باكوس' },
-        ],
-      },
-      {
-        id: 3,
-        name: 'الجيزة',
-        areas: [
-          { id: 11, name: 'الدقي' },
-          { id: 12, name: 'المهندسين' },
-          { id: 13, name: 'الهرم' },
-          { id: 14, name: '6 أكتوبر' },
-          { id: 15, name: 'الشيخ زايد' },
-        ],
-      },
-      {
-        id: 4,
-        name: 'المنوفية',
-        areas: [
-          { id: 16, name: 'شبين الكوم' },
-          { id: 17, name: 'سمنود' },
-          { id: 18, name: 'قويسنا' },
-          { id: 19, name: 'بركة السبع' },
-          { id: 20, name: 'تلا' },
-        ],
-      },
-      {
-        id: 5,
-        name: 'الشرقية',
-        areas: [
-          { id: 21, name: 'الزقازيق' },
-          { id: 22, name: 'العاشر من رمضان' },
-          { id: 23, name: 'بلبيس' },
-          { id: 24, name: 'أبو كبير' },
-          { id: 25, name: 'فاقوس' },
-        ],
-      },
-    ];
   }
 }
