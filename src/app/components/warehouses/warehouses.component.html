@@ -762,33 +762,55 @@
 
             <div class="row">
               <div class="col-md-6">
-                <div class="mb-3">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="isTrusted"
-                      formControlName="isTrusted"
-                    />
-                    <label class="form-check-label" for="isTrusted">
-                      Trusted Warehouse
-                    </label>
-                  </div>
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Trusted Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isTrusted')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isTrusted')
+                        ?.setValue(!warehouseForm.get('isTrusted')?.value)
+                    "
+                  >
+                    {{ warehouseForm.get("isTrusted")?.value ? "Yes" : "No" }}
+                  </button>
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="mb-3">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="isWarehouseApproved"
-                      formControlName="isWarehouseApproved"
-                    />
-                    <label class="form-check-label" for="isWarehouseApproved">
-                      Approved Warehouse
-                    </label>
-                  </div>
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Approved Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isWarehouseApproved')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isWarehouseApproved')
+                        ?.setValue(
+                          !warehouseForm.get('isWarehouseApproved')?.value
+                        )
+                    "
+                  >
+                    {{
+                      warehouseForm.get("isWarehouseApproved")?.value
+                        ? "Yes"
+                        : "No"
+                    }}
+                  </button>
                 </div>
               </div>
             </div>

@@ -565,7 +565,40 @@ export class Warehouses implements OnInit, OnDestroy {
       );
       return;
     }
+
     const formValue = this.warehouseForm.value;
+    const email = formValue.email;
+
+    // Check if this is a new warehouse creation (not edit mode)
+    if (!this.showEditForm) {
+      // Check if email already exists before creating
+      this.warehouseService.checkWarehouseEmailExists(email).subscribe({
+        next: (emailExists) => {
+          if (emailExists) {
+            console.log('Email exists, showing error modal');
+            this.showErrorMessage(
+              'A warehouse with this email already exists. Please use a different email.'
+            );
+            this.cdr.detectChanges();
+            this.cdr.markForCheck();
+            console.log('Error modal should be shown');
+            return;
+          }
+          // Email doesn't exist, proceed with warehouse creation
+          this.proceedWithWarehouseCreation(formValue);
+        },
+        error: (error) => {
+          console.error('Error checking email existence:', error);
+          this.showErrorMessage('Error checking email. Please try again.');
+        },
+      });
+    } else {
+      // For edit mode, proceed directly without email check
+      this.proceedWithWarehouseCreation(formValue);
+    }
+  }
+
+  private proceedWithWarehouseCreation(formValue: any): void {
     // Convert governorate ID to name for the payload
     const governorateId = formValue.governate;
     const selectedGovernorate = this.pharmacyGovernorates.find(
