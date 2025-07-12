@@ -630,7 +630,16 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     const repId = representative.id;
     const originalIndex = this.deleteIndex; // Store the original index
 
+    // Remove from both arrays
     this.representatives = this.representatives.filter((r) => r.id !== repId);
+    
+    // Update filtered array - if there's a search term, re-apply the filter
+    if (this.searchTerm.trim()) {
+      this.onRepresentativeSearch(); // Re-apply search filter
+    } else {
+      this.filteredRepresentatives = [...this.representatives]; // Update filtered array
+    }
+    
     this.cdr.detectChanges();
 
     this.representativeService.deleteRepresentative(repId).subscribe({
@@ -656,6 +665,14 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       error: (error) => {
         // Restore the item at the original position
         this.representatives.splice(originalIndex, 0, representative);
+        
+        // Re-apply search filter or update filtered array
+        if (this.searchTerm.trim()) {
+          this.onRepresentativeSearch(); // Re-apply search filter
+        } else {
+          this.filteredRepresentatives = [...this.representatives]; // Update filtered array
+        }
+        
         this.deleting = false;
         this.ngZone.run(() => {
           this.cdr.detectChanges();
