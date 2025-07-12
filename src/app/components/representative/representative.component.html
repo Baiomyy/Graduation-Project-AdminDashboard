@@ -1,104 +1,271 @@
 <div class="card">
   <div class="card-header">
     <h4 class="card-title" *ngIf="!isShowingPharmacies">Representative</h4>
-    <h4 class="card-title" *ngIf="isShowingPharmacies">Pharmacies for {{ selectedRepresentative?.name }}</h4>
+    <h4 class="card-title" *ngIf="isShowingPharmacies">
+      Pharmacies for {{ selectedRepresentative?.name }}
+    </h4>
     <p class="card-category" *ngIf="!isShowingPharmacies">Users Table</p>
     <p class="card-category" *ngIf="isShowingPharmacies">Pharmacies Table</p>
-    
+
     <!-- Back button when showing pharmacies -->
-    <button *ngIf="isShowingPharmacies" class="btn btn-secondary btn-sm float-right" style="margin-top: -38px; margin-right: 10px;" (click)="backToRepresentatives()" data-bs-toggle="" data-bs-placement="">
+    <button
+      *ngIf="isShowingPharmacies"
+      class="btn btn-secondary btn-sm float-right"
+      style="margin-top: -38px; margin-right: 10px"
+      (click)="backToRepresentatives()"
+      data-bs-toggle=""
+      data-bs-placement=""
+    >
       <i class="la la-arrow-left"></i> Back to Representatives
     </button>
-    
 
-    
     <!-- Add button only when showing representatives -->
-    <button *ngIf="!isShowingPharmacies" class="btn btn-primary btn-sm float-right" style="margin-top: -38px;" (click)="openAddModal()" data-bs-toggle="" data-bs-placement="">
+    <button
+      *ngIf="!isShowingPharmacies"
+      class="btn btn-primary btn-sm float-right"
+      style="margin-top: -38px"
+      (click)="openAddModal()"
+      data-bs-toggle=""
+      data-bs-placement=""
+    >
       <i class="la la-plus"></i> Add Representative
     </button>
   </div>
   <div class="card-body">
     <!-- Representatives Table -->
-    <table *ngIf="!isShowingPharmacies" class="table table-striped table-hover">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Code</th>
-          <th>Address</th>
-          <th>Governate</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let rep of representatives; let i = index; trackBy: trackByRepId" style="cursor: pointer;" (click)="loadPharmaciesForRepresentative(rep)">
-          <td>{{ rep.id }}</td>
-          <td>{{ rep.name }}</td>
-          <td>{{ rep.code }}</td>
-          <td>{{ rep.address }}</td>
-          <td>{{ rep.governate }}</td>
-          <td>
-            <button class="btn btn-danger btn-sm" (click)="openDeleteModal(i); $event.stopPropagation()" data-bs-toggle="" data-bs-placement="">
-              <i class="la la-trash"></i> Delete
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div *ngIf="!isShowingPharmacies">
+      <!-- Search Bar for Representatives -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search representatives..."
+              [(ngModel)]="searchTerm"
+              (input)="onRepresentativeSearch()"
+              (keyup)="onRepresentativeSearch()"
+            />
+            <div class="input-group-append">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                (click)="clearRepresentativeSearch()"
+                *ngIf="searchTerm"
+              >
+                <i class="la la-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 text-right">
+          <small class="text-muted">
+            Showing {{ filteredRepresentatives.length }} of
+            {{ representatives.length }} representatives
+          </small>
+        </div>
+      </div>
+
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Code</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="
+              let rep of filteredRepresentatives;
+              let i = index;
+              trackBy: trackByRepId
+            "
+            style="cursor: pointer"
+            (click)="loadPharmaciesForRepresentative(rep)"
+          >
+            <td>{{ rep.id }}</td>
+            <td>{{ rep.name }}</td>
+            <td>{{ rep.code }}</td>
+            <td>{{ rep.phoneNumber || "N/A" }}</td>
+            <td>{{ rep.email || "N/A" }}</td>
+            <td>
+              <button
+                class="btn btn-danger btn-sm"
+                (click)="openDeleteModal(i); $event.stopPropagation()"
+                data-bs-toggle=""
+                data-bs-placement=""
+              >
+                <i class="la la-trash"></i> Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- No results message -->
+      <div
+        *ngIf="
+          filteredRepresentatives.length === 0 && representatives.length > 0
+        "
+        class="text-center py-4"
+      >
+        <i class="la la-search la-3x text-muted"></i>
+        <p class="mt-2 text-muted">
+          No representatives found matching "{{ searchTerm }}"
+        </p>
+        <button
+          class="btn btn-outline-primary btn-sm"
+          (click)="clearRepresentativeSearch()"
+        >
+          <i class="la la-times"></i> Clear Search
+        </button>
+      </div>
+    </div>
 
     <!-- Pharmacies Table -->
-    <table *ngIf="isShowingPharmacies" class="table table-striped table-hover">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone Number</th>
-          <th>Governate</th>
-          <th>Username</th>
-          <th>Address</th>
-          <th>Area</th>
-          <th>Order Count</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let pharmacy of pharmacies">
-          <td>{{ pharmacy.id }}</td>
-          <td>{{ pharmacy.name }}</td>
-          <td>{{ pharmacy.phoneNumber }}</td>
-          <td>{{ pharmacy.governate }}</td>
-          <td>{{ pharmacy.userName }}</td>
-          <td>{{ pharmacy.address }}</td>
-          <td>{{ pharmacy.areaName }}</td>
-          <td>{{ pharmacy.orderCount ?? '-' }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div *ngIf="isShowingPharmacies">
+      <!-- Search Bar for Pharmacies -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search pharmacies..."
+              [(ngModel)]="pharmacySearchTerm"
+              (input)="onPharmacySearch()"
+            />
+            <div class="input-group-append">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                (click)="clearPharmacySearch()"
+                *ngIf="pharmacySearchTerm"
+              >
+                <i class="la la-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 text-right">
+          <small class="text-muted">
+            Showing {{ filteredPharmacies.length }} of
+            {{ pharmacies.length }} pharmacies
+          </small>
+        </div>
+      </div>
+
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Phone Number</th>
+            <th>Governate</th>
+            <th>Username</th>
+            <th>Address</th>
+            <th>Area</th>
+            <th>Order Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pharmacy of filteredPharmacies">
+            <td>{{ pharmacy.id }}</td>
+            <td>{{ pharmacy.name }}</td>
+            <td>{{ pharmacy.phoneNumber }}</td>
+            <td>{{ pharmacy.governate }}</td>
+            <td>{{ pharmacy.userName }}</td>
+            <td>{{ pharmacy.address }}</td>
+            <td>{{ pharmacy.areaName }}</td>
+            <td>{{ pharmacy.orderCount ?? "-" }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- No results message for pharmacies -->
+      <div
+        *ngIf="filteredPharmacies.length === 0 && pharmacies.length > 0"
+        class="text-center py-4"
+      >
+        <i class="la la-search la-3x text-muted"></i>
+        <p class="mt-2 text-muted">
+          No pharmacies found matching "{{ pharmacySearchTerm }}"
+        </p>
+        <button
+          class="btn btn-outline-primary btn-sm"
+          (click)="clearPharmacySearch()"
+        >
+          <i class="la la-times"></i> Clear Search
+        </button>
+      </div>
+    </div>
 
     <!-- Loading indicator for pharmacies -->
-    <div *ngIf="isShowingPharmacies && loadingPharmacies" class="text-center p-3">
+    <div
+      *ngIf="isShowingPharmacies && loadingPharmacies"
+      class="text-center p-3"
+    >
       <i class="la la-spinner la-spin"></i> Loading pharmacies...
       <!-- Debug info -->
       <div class="small text-muted">
-        Debug: isShowingPharmacies={{isShowingPharmacies}}, loadingPharmacies={{loadingPharmacies}}, pharmacies.length={{pharmacies.length}}
+        Debug: isShowingPharmacies={{ isShowingPharmacies }},
+        loadingPharmacies={{ loadingPharmacies }}, pharmacies.length={{
+          pharmacies.length
+        }}
       </div>
     </div>
 
     <!-- No data message -->
-    <div *ngIf="isShowingPharmacies && pharmacies.length === 0 && !loadingPharmacies" class="text-center p-3">
+    <div
+      *ngIf="
+        isShowingPharmacies && pharmacies.length === 0 && !loadingPharmacies
+      "
+      class="text-center p-3"
+    >
       <p>No pharmacies found for this representative.</p>
     </div>
   </div>
 </div>
 
 <!-- Add Representative Modal -->
-<div *ngIf="showAddModal" class="modal-overlay" (click)="closeAddModal()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1050; display: flex; align-items: center; justify-content: center;">
-  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 500px; width: 90vw;">
+<div
+  *ngIf="showAddModal"
+  class="modal-overlay"
+  (click)="closeAddModal()"
+  style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  <div
+    class="modal-dialog"
+    (click)="$event.stopPropagation()"
+    style="max-width: 500px; width: 90vw"
+  >
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">Add Representative</h5>
-        <button type="button" class="close" (click)="closeAddModal()">&times;</button>
+        <button type="button" class="close" (click)="closeAddModal()">
+          &times;
+        </button>
       </div>
-      <form (ngSubmit)="submitAddRepresentative()" #addRepForm="ngForm" autocomplete="off">
+      <form
+        (ngSubmit)="submitAddRepresentative()"
+        #addRepForm="ngForm"
+        autocomplete="off"
+      >
         <div class="modal-body">
           <div class="row">
             <!-- Left Column -->
@@ -115,7 +282,9 @@
                   maxlength="100"
                 />
                 <div *ngIf="validationErrors['Name']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Name']">{{ err }}</div>
+                  <div *ngFor="let err of validationErrors['Name']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
 
@@ -129,8 +298,13 @@
                   [(ngModel)]="newRepresentative.email"
                   required
                 />
-                <div *ngIf="validationErrors['Email']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Email']">{{ err }}</div>
+                <div
+                  *ngIf="validationErrors['Email']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Email']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
 
@@ -144,8 +318,13 @@
                   [(ngModel)]="newRepresentative.phone"
                   required
                 />
-                <div *ngIf="validationErrors['Phone']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Phone']">{{ err }}</div>
+                <div
+                  *ngIf="validationErrors['Phone']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Phone']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
 
@@ -160,8 +339,13 @@
                   required
                   minlength="8"
                 />
-                <div *ngIf="validationErrors['Password']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Password']">{{ err }}</div>
+                <div
+                  *ngIf="validationErrors['Password']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Password']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -179,8 +363,13 @@
                   maxlength="200"
                   rows="2"
                 ></textarea>
-                <div *ngIf="validationErrors['Address']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Address']">{{ err }}</div>
+                <div
+                  *ngIf="validationErrors['Address']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Address']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
 
@@ -195,24 +384,36 @@
                   required
                 >
                   <option value="">Select Governate</option>
-                  <option *ngFor="let governate of governates" [value]="governate.name">
+                  <option
+                    *ngFor="let governate of governates"
+                    [value]="governate.name"
+                  >
                     {{ governate.name }}
                   </option>
                 </select>
-                <div *ngIf="validationErrors['Governate']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Governate']">{{ err }}</div>
+                <div
+                  *ngIf="validationErrors['Governate']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Governate']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
 
               <!-- Areas dropdown -->
               <div class="form-group">
                 <label>Areas</label>
-                
+
                 <!-- Governate selection required message -->
-                <div *ngIf="!newRepresentative.governate" class="text-muted small mb-2">
-                  <i class="la la-info-circle"></i> Please select a governate first
+                <div
+                  *ngIf="!newRepresentative.governate"
+                  class="text-muted small mb-2"
+                >
+                  <i class="la la-info-circle"></i> Please select a governate
+                  first
                 </div>
-                
+
                 <select
                   class="form-control form-control-sm"
                   name="areas"
@@ -223,62 +424,117 @@
                   #areasSelect
                   [disabled]="!newRepresentative.governate || loadingAreas"
                 >
-                  <option *ngFor="let area of areas; trackBy: trackByAreaId" [value]="area.id" [selected]="isAreaSelected(area.id)">
+                  <option
+                    *ngFor="let area of areas; trackBy: trackByAreaId"
+                    [value]="area.id"
+                    [selected]="isAreaSelected(area.id)"
+                  >
                     {{ area.name }}
                   </option>
                 </select>
-                
+
                 <!-- Loading indicator -->
                 <div *ngIf="loadingAreas" class="text-info small mt-1">
-                  <i class="la la-spinner la-spin"></i> Loading areas for {{ newRepresentative.governate }}...
+                  <i class="la la-spinner la-spin"></i> Loading areas for
+                  {{ newRepresentative.governate }}...
                 </div>
-                
+
                 <!-- Success state -->
-                <div *ngIf="areas.length > 0 && !loadingAreas" class="text-success small mt-1">
-                  <i class="la la-check"></i> {{ areas.length }} areas available for {{ newRepresentative.governate }}
+                <div
+                  *ngIf="areas.length > 0 && !loadingAreas"
+                  class="text-success small mt-1"
+                >
+                  <i class="la la-check"></i> {{ areas.length }} areas available
+                  for {{ newRepresentative.governate }}
                 </div>
-                
+
                 <!-- Empty state -->
-                <div *ngIf="areas.length === 0 && !loadingAreas && newRepresentative.governate" class="text-warning small mt-1">
-                  <i class="la la-exclamation-triangle"></i> No areas available for {{ newRepresentative.governate }}
+                <div
+                  *ngIf="
+                    areas.length === 0 &&
+                    !loadingAreas &&
+                    newRepresentative.governate
+                  "
+                  class="text-warning small mt-1"
+                >
+                  <i class="la la-exclamation-triangle"></i> No areas available
+                  for {{ newRepresentative.governate }}
                 </div>
-                
+
                 <!-- Retry button for failed loads -->
-                <div *ngIf="areas.length === 0 && !loadingAreas && newRepresentative.governate" class="mt-1">
-                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="retryLoadAreas()">
+                <div
+                  *ngIf="
+                    areas.length === 0 &&
+                    !loadingAreas &&
+                    newRepresentative.governate
+                  "
+                  class="mt-1"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="retryLoadAreas()"
+                  >
                     <i class="la la-refresh"></i> Retry Loading Areas
                   </button>
                 </div>
-                
+
                 <!-- Selected Areas Display -->
                 <div *ngIf="selectedAreas.length > 0" class="mt-2">
-                  <label class="small">Selected Areas ({{ selectedAreas.length }}):</label>
+                  <label class="small"
+                    >Selected Areas ({{ selectedAreas.length }}):</label
+                  >
                   <div class="selected-areas-container">
-                    <span *ngFor="let areaId of selectedAreas" class="badge badge-primary mr-1 mb-1">
+                    <span
+                      *ngFor="let areaId of selectedAreas"
+                      class="badge badge-primary mr-1 mb-1"
+                    >
                       <i class="la la-map-marker"></i> {{ getAreaName(areaId) }}
-                      <button type="button" class="close ml-1" (click)="removeArea(areaId)" style="font-size: 0.7em;">
+                      <button
+                        type="button"
+                        class="close ml-1"
+                        (click)="removeArea(areaId)"
+                        style="font-size: 0.7em"
+                      >
                         &times;
                       </button>
                     </span>
-                    <button type="button" class="btn btn-sm btn-outline-danger ml-2" (click)="clearAllAreas()">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger ml-2"
+                      (click)="clearAllAreas()"
+                    >
                       <i class="la la-times"></i> Clear All
                     </button>
                   </div>
                 </div>
-                
-                <div *ngIf="validationErrors['Areas']" class="text-danger small">
-                  <div *ngFor="let err of validationErrors['Areas']">{{ err }}</div>
+
+                <div
+                  *ngIf="validationErrors['Areas']"
+                  class="text-danger small"
+                >
+                  <div *ngFor="let err of validationErrors['Areas']">
+                    {{ err }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-sm" (click)="closeAddModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm" [disabled]="addRepForm.invalid || submitting">
-            {{ submitting ? 'Adding...' : 'Add Representative' }}
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            (click)="closeAddModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm"
+            [disabled]="addRepForm.invalid || submitting"
+          >
+            {{ submitting ? "Adding..." : "Add Representative" }}
           </button>
         </div>
       </form>
@@ -287,12 +543,34 @@
 </div>
 
 <!-- Delete Modal -->
-<div *ngIf="showDeleteModal" class="modal-overlay" (click)="closeDeleteModal()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1050; display: flex; align-items: center; justify-content: center;">
-  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 400px; width: 30vw;">
+<div
+  *ngIf="showDeleteModal"
+  class="modal-overlay"
+  (click)="closeDeleteModal()"
+  style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  <div
+    class="modal-dialog"
+    (click)="$event.stopPropagation()"
+    style="max-width: 400px; width: 30vw"
+  >
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title">Confirm Delete</h5>
-        <button type="button" class="close" (click)="closeDeleteModal()">&times;</button>
+        <button type="button" class="close" (click)="closeDeleteModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <p>Are you sure you want to delete this representative?</p>
@@ -302,14 +580,46 @@
         </p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="deleting" data-bs-toggle="" data-bs-placement="">Cancel</button>
-        <button type="button" class="btn btn-danger" (click)="confirmDeleteRepresentative()" [disabled]="deleting" data-bs-toggle="" data-bs-placement="">{{ deleting ? 'Deleting...' : 'Delete' }}</button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeDeleteModal()"
+          [disabled]="deleting"
+          data-bs-toggle=""
+          data-bs-placement=""
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="confirmDeleteRepresentative()"
+          [disabled]="deleting"
+          data-bs-toggle=""
+          data-bs-placement=""
+        >
+          {{ deleting ? "Deleting..." : "Delete" }}
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Notification -->
-<div *ngIf="notification" class="alert" [ngClass]="{'alert-success': notification.type === 'success', 'alert-danger': notification.type === 'error'}" style="position: fixed; top: 80px; right: 30px; z-index: 2000; min-width: 200px;">
+<div
+  *ngIf="notification"
+  class="alert"
+  [ngClass]="{
+    'alert-success': notification.type === 'success',
+    'alert-danger': notification.type === 'error'
+  }"
+  style="
+    position: fixed;
+    top: 80px;
+    right: 30px;
+    z-index: 2000;
+    min-width: 200px;
+  "
+>
   {{ notification.message }}
 </div>

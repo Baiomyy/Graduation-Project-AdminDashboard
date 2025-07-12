@@ -1,23 +1,47 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject, PLATFORM_ID, NgZone, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+  Inject,
+  PLATFORM_ID,
+  NgZone,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NgFor, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { RepresentativeService, RepresentativeDTO, Pharmacy, RepresentativePharmaciesResponse, Governate, Area } from '../../services/representative.service';
+import {
+  RepresentativeService,
+  RepresentativeDTO,
+  Pharmacy,
+  RepresentativePharmaciesResponse,
+  Governate,
+  Area,
+} from '../../services/representative.service';
 import { OrderService } from '../../services/order.service';
 
 // Interfaces
-export type RepresentativeField = 'name' | 'address' | 'governate' | 'email' | 'password' | 'phone' | 'repAreas';
+export type RepresentativeField =
+  | 'name'
+  | 'address'
+  | 'governate'
+  | 'email'
+  | 'password'
+  | 'phone'
+  | 'repAreas';
 
 export interface Representative {
   id: number;
   name: string;
   code: string;
-  address: string;
-  governate: string;
-  isActive: boolean;
+  phoneNumber: string; // Changed from phone to phoneNumber to match service
   email: string;
-  phone: string;
+  isActive: boolean;
+  address?: string; // Made optional since service doesn't have it
+  governate?: string; // Made optional since service doesn't have it
 }
 
 export interface Notification {
@@ -34,12 +58,14 @@ export interface ValidationErrors {
   standalone: true,
   imports: [NgFor, CommonModule, FormsModule, HttpClientModule],
   templateUrl: './representative.component.html',
-  styleUrl: './representative.scss'
+  styleUrl: './representative.scss',
 })
 export class RepresentativeComponent implements OnInit, OnDestroy {
   // Component state
   representatives: Representative[] = [];
+  filteredRepresentatives: Representative[] = []; // Add filtered array
   pharmacies: Pharmacy[] = [];
+  filteredPharmacies: Pharmacy[] = []; // Add filtered pharmacies array
   governates: Governate[] = [];
   areas: Area[] = [];
   selectedAreas: number[] = []; // Changed back to array for multiple selection
@@ -47,21 +73,42 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   showDeleteModal = false;
   submitting = false;
   deleting = false;
-  
+
+  // Search properties
+  searchTerm: string = '';
+  pharmacySearchTerm: string = '';
+
   // New properties for pharmacy view
   isShowingPharmacies = false;
   selectedRepresentative: Representative | null = null;
   pharmaciesResponse: RepresentativePharmaciesResponse | null = null;
   loadingPharmacies = false; // Separate loading state for pharmacies
   loadingAreas = false;
-  @ViewChild('areasSelect', { static: false }) areasSelect!: ElementRef<HTMLSelectElement>;
+  @ViewChild('areasSelect', { static: false })
+  areasSelect!: ElementRef<HTMLSelectElement>;
 
-  fields: RepresentativeField[] = ['name', 'address', 'governate', 'email', 'password', 'phone', 'repAreas'];
+  fields: RepresentativeField[] = [
+    'name',
+    'address',
+    'governate',
+    'email',
+    'password',
+    'phone',
+    'repAreas',
+  ];
   newRepresentative: RepresentativeDTO = this.getEmptyRepresentative();
   deleteIndex: number | null = null;
   notification: Notification | null = null;
   validationErrors: ValidationErrors = {};
-  private originalErrorHandler: ((message?: any, source?: any, lineno?: any, colno?: any, error?: any) => boolean) | null = null;
+  private originalErrorHandler:
+    | ((
+        message?: any,
+        source?: any,
+        lineno?: any,
+        colno?: any,
+        error?: any
+      ) => boolean)
+    | null = null;
 
   constructor(
     private representativeService: RepresentativeService,
@@ -93,10 +140,12 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private cleanupTooltips(): void {
     // Try to destroy any Bootstrap tooltips that might exist
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     try {
-      const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      tooltipElements.forEach(element => {
+      const tooltipElements = document.querySelectorAll(
+        '[data-bs-toggle="tooltip"]'
+      );
+      tooltipElements.forEach((element) => {
         // Remove tooltip attributes to prevent initialization
         element.removeAttribute('data-bs-toggle');
         element.removeAttribute('data-bs-placement');
@@ -110,13 +159,15 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private preventTooltipErrors(): void {
     // Prevent tooltip initialization on our buttons
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     try {
       // Remove all tooltip attributes from the entire document
       setTimeout(() => {
         // Remove from all elements with tooltip attributes
-        const tooltipElements = document.querySelectorAll('[data-bs-toggle], [data-toggle], [title]');
-        tooltipElements.forEach(element => {
+        const tooltipElements = document.querySelectorAll(
+          '[data-bs-toggle], [data-toggle], [title]'
+        );
+        tooltipElements.forEach((element) => {
           element.removeAttribute('data-bs-toggle');
           element.removeAttribute('data-bs-placement');
           element.removeAttribute('data-toggle');
@@ -126,7 +177,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
         // Also remove from buttons specifically
         const buttons = document.querySelectorAll('.btn');
-        buttons.forEach(button => {
+        buttons.forEach((button) => {
           button.removeAttribute('data-bs-toggle');
           button.removeAttribute('data-bs-placement');
           button.removeAttribute('data-toggle');
@@ -135,11 +186,18 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
         });
 
         // Disable any existing tooltip instances
-        if (typeof (window as any).bootstrap !== 'undefined' && (window as any).bootstrap.Tooltip) {
-          const tooltipInstances = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-          tooltipInstances.forEach(element => {
+        if (
+          typeof (window as any).bootstrap !== 'undefined' &&
+          (window as any).bootstrap.Tooltip
+        ) {
+          const tooltipInstances = document.querySelectorAll(
+            '[data-bs-toggle="tooltip"]'
+          );
+          tooltipInstances.forEach((element) => {
             try {
-              const tooltip = (window as any).bootstrap.Tooltip.getInstance(element);
+              const tooltip = (window as any).bootstrap.Tooltip.getInstance(
+                element
+              );
               if (tooltip) {
                 tooltip.dispose();
               }
@@ -158,12 +216,12 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private disableGlobalTooltips(): void {
     // Disable global tooltip initialization to prevent errors
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     try {
       // Override the global tooltip function to prevent errors
       if (typeof (window as any).tooltip === 'function') {
         const originalTooltip = (window as any).tooltip;
-        (window as any).tooltip = function(...args: any[]) {
+        (window as any).tooltip = function (...args: any[]) {
           try {
             return originalTooltip.apply(this, args);
           } catch (error) {
@@ -178,7 +236,10 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       if (typeof (window as any).bootstrap !== 'undefined') {
         const originalTooltip = (window as any).bootstrap.Tooltip;
         if (originalTooltip) {
-          (window as any).bootstrap.Tooltip = function(element: any, options: any) {
+          (window as any).bootstrap.Tooltip = function (
+            element: any,
+            options: any
+          ) {
             try {
               if (element && element.querySelector) {
                 return new originalTooltip(element, options);
@@ -194,14 +255,23 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       // Add a global error handler for tooltip-related errors
       this.originalErrorHandler = window.onerror;
       window.onerror = (message, source, lineno, colno, error) => {
-        if (message && typeof message === 'string' && 
-            (message.includes('querySelector') || message.includes('tooltip'))) {
+        if (
+          message &&
+          typeof message === 'string' &&
+          (message.includes('querySelector') || message.includes('tooltip'))
+        ) {
           console.warn('Tooltip-related error suppressed:', message);
           return true; // Prevent the error from being logged
         }
         // Call original error handler for other errors
         if (this.originalErrorHandler) {
-          return this.originalErrorHandler(message, source, lineno, colno, error);
+          return this.originalErrorHandler(
+            message,
+            source,
+            lineno,
+            colno,
+            error
+          );
         }
         return false;
       };
@@ -213,13 +283,17 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private setupGlobalErrorSuppression(): void {
     // More aggressive error suppression for tooltip-related errors
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     try {
       // Override console.error to suppress tooltip errors
       const originalConsoleError = console.error;
       console.error = (...args: any[]) => {
         const message = args.join(' ');
-        if (message.includes('querySelector') || message.includes('tooltip') || message.includes('Cannot read properties of null')) {
+        if (
+          message.includes('querySelector') ||
+          message.includes('tooltip') ||
+          message.includes('Cannot read properties of null')
+        ) {
           console.warn('Suppressed error:', message);
           return;
         }
@@ -233,7 +307,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private restoreErrorHandler(): void {
     // Restore the original error handler
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     try {
       if (this.originalErrorHandler) {
         window.onerror = this.originalErrorHandler;
@@ -250,20 +324,23 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.selectedRepresentative = null;
     this.pharmaciesResponse = null;
     this.pharmacies = [];
+    this.filteredPharmacies = []; // Reset filtered pharmacies
     this.submitting = false;
     this.loadingPharmacies = false; // Reset pharmacy loading state
-    
+
     this.representativeService.getAllRepresentatives().subscribe({
       next: (data: Representative[]) => {
         // Filter to show only active representatives
-        this.representatives = data.filter(rep => rep.isActive === true);
+        this.representatives = data.filter((rep) => rep.isActive === true);
+        this.filteredRepresentatives = [...this.representatives]; // Initialize filtered array
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error loading representatives:', error);
+        console.error('❌ Error loading representatives:', error);
         this.representatives = [];
+        this.filteredRepresentatives = [];
         this.showNotification('error', 'Failed to load representatives');
-      }
+      },
     });
   }
 
@@ -272,53 +349,65 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.selectedRepresentative = representative;
     this.loadingPharmacies = true;
     this.isShowingPharmacies = true;
+    this.pharmacySearchTerm = ''; // Reset pharmacy search term
     this.cdr.detectChanges();
-    this.representativeService.getPharmaciesByRepresentativeId(representative.id).subscribe({
-      next: (response: RepresentativePharmaciesResponse) => {
-        this.ngZone.run(() => {
-          this.pharmaciesResponse = response;
-          this.pharmacies = response.pharmacies;
-          // Fetch order count for each pharmacy
-          if (this.pharmacies && this.pharmacies.length > 0) {
-            let completed = 0;
-            this.pharmacies.forEach((pharmacy, idx) => {
-              this.orderService.getOrdersByPharmacyId(pharmacy.id).subscribe({
-                next: (orderResp) => {
-                  this.pharmacies[idx].orderCount = orderResp.result?.items?.length || 0;
-                  completed++;
-                  if (completed === this.pharmacies.length) {
-                    this.loadingPharmacies = false;
-                    this.cdr.detectChanges();
-                  }
-                },
-                error: () => {
-                  this.pharmacies[idx].orderCount = 0;
-                  completed++;
-                  if (completed === this.pharmacies.length) {
-                    this.loadingPharmacies = false;
-                    this.cdr.detectChanges();
-                  }
-                }
+    this.representativeService
+      .getPharmaciesByRepresentativeId(representative.id)
+      .subscribe({
+        next: (response: RepresentativePharmaciesResponse) => {
+          this.ngZone.run(() => {
+            this.pharmaciesResponse = response;
+            this.pharmacies = response.pharmacies;
+            this.filteredPharmacies = [...this.pharmacies]; // Initialize filtered pharmacies
+            // Fetch order count for each pharmacy
+            if (this.pharmacies && this.pharmacies.length > 0) {
+              let completed = 0;
+              this.pharmacies.forEach((pharmacy, idx) => {
+                this.orderService.getOrdersByPharmacyId(pharmacy.id).subscribe({
+                  next: (orderResp) => {
+                    this.pharmacies[idx].orderCount =
+                      orderResp.result?.items?.length || 0;
+                    this.filteredPharmacies[idx].orderCount =
+                      this.pharmacies[idx].orderCount; // Update filtered array too
+                    completed++;
+                    if (completed === this.pharmacies.length) {
+                      this.loadingPharmacies = false;
+                      this.cdr.detectChanges();
+                    }
+                  },
+                  error: () => {
+                    this.pharmacies[idx].orderCount = 0;
+                    this.filteredPharmacies[idx].orderCount = 0; // Update filtered array too
+                    completed++;
+                    if (completed === this.pharmacies.length) {
+                      this.loadingPharmacies = false;
+                      this.cdr.detectChanges();
+                    }
+                  },
+                });
               });
-            });
-          } else {
+            } else {
+              this.loadingPharmacies = false;
+              this.cdr.detectChanges();
+            }
+          });
+        },
+        error: (error) => {
+          this.ngZone.run(() => {
             this.loadingPharmacies = false;
+            this.isShowingPharmacies = false;
+            this.selectedRepresentative = null;
+            this.pharmaciesResponse = null;
+            this.pharmacies = [];
+            this.filteredPharmacies = [];
             this.cdr.detectChanges();
-          }
-        });
-      },
-      error: (error) => {
-        this.ngZone.run(() => {
-          this.loadingPharmacies = false;
-          this.isShowingPharmacies = false;
-          this.selectedRepresentative = null;
-          this.pharmaciesResponse = null;
-          this.pharmacies = [];
-          this.cdr.detectChanges();
-        });
-        this.showNotification('error', 'Failed to load pharmacies for this representative');
-      }
-    });
+          });
+          this.showNotification(
+            'error',
+            'Failed to load pharmacies for this representative'
+          );
+        },
+      });
   }
 
   backToRepresentatives(): void {
@@ -326,6 +415,8 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.selectedRepresentative = null;
     this.pharmaciesResponse = null;
     this.pharmacies = [];
+    this.filteredPharmacies = [];
+    this.pharmacySearchTerm = ''; // Reset pharmacy search term
     this.submitting = false; // Ensure loading state is reset
     this.loadingPharmacies = false; // Reset pharmacy loading state
     this.cdr.detectChanges();
@@ -334,7 +425,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   openAddModal(): void {
     this.showAddModal = true;
     this.resetForm();
-    
+
     // Ensure proper initialization when modal opens
     this.ngZone.run(() => {
       this.cdr.detectChanges();
@@ -350,7 +441,13 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   }
 
   openDeleteModal(index: number): void {
-    this.deleteIndex = index;
+    // Find the actual representative in the original array
+    const filteredRep = this.filteredRepresentatives[index];
+    const actualIndex = this.representatives.findIndex(
+      (rep) => rep.id === filteredRep.id
+    );
+
+    this.deleteIndex = actualIndex;
     this.showDeleteModal = true;
   }
 
@@ -367,7 +464,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.areas = [];
     this.selectedAreas = []; // Reset to empty array
     this.loadingAreas = false;
-    
+
     // Force change detection to update the UI
     this.cdr.detectChanges();
   }
@@ -381,75 +478,83 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       repAreas: [],
       email: '',
       password: '',
-      phone: ''
+      phone: '',
     };
   }
 
   submitAddRepresentative(): void {
     if (this.submitting) return;
-  
+
     this.submitting = true;
     this.validationErrors = {};
-  
-    this.representativeService.createRepresentative(this.newRepresentative).subscribe({
-      next: (response: Representative) => {
-        this.submitting = false;
-        this.resetForm(); // ✅ force reset the form state
-        this.showAddModal = false; // ✅ force hide modal
-        
-        // Force modal closing with NgZone
-        this.ngZone.run(() => {
-          this.cdr.detectChanges();
-          setTimeout(() => {
-            this.ngZone.run(() => {
-              this.cdr.detectChanges();
-            });
-          }, 50);
-        });
 
-        this.showNotification('success', 'Representative added successfully!');
-        this.loadRepresentatives(); // Refresh the list from the API after add
-      },
-      error: (error) => {
-        this.submitting = false;
-        if (error?.error && typeof error.error === 'object') {
-          this.validationErrors = error.error;
-        }
-        this.showNotification('error', 'Failed to add representative');
-        this.cdr.detectChanges();
-      }
-    });
+    this.representativeService
+      .createRepresentative(this.newRepresentative)
+      .subscribe({
+        next: (response: Representative) => {
+          this.submitting = false;
+          this.resetForm(); // ✅ force reset the form state
+          this.showAddModal = false; // ✅ force hide modal
+
+          // Force modal closing with NgZone
+          this.ngZone.run(() => {
+            this.cdr.detectChanges();
+            setTimeout(() => {
+              this.ngZone.run(() => {
+                this.cdr.detectChanges();
+              });
+            }, 50);
+          });
+
+          this.showNotification(
+            'success',
+            'Representative added successfully!'
+          );
+          this.loadRepresentatives(); // Refresh the list from the API after add
+        },
+        error: (error) => {
+          this.submitting = false;
+          if (error?.error && typeof error.error === 'object') {
+            this.validationErrors = error.error;
+          }
+          this.showNotification('error', 'Failed to add representative');
+          this.cdr.detectChanges();
+        },
+      });
   }
-  
+
   confirmDeleteRepresentative(): void {
     if (this.deleteIndex === null || this.deleting) return;
-  
+
     const representative = this.representatives[this.deleteIndex];
     if (!representative?.id) {
       this.closeDeleteModal();
       return;
     }
-  
+
     this.deleting = true;
     const repId = representative.id;
     const originalIndex = this.deleteIndex; // Store the original index
-  
-    this.representatives = this.representatives.filter(r => r.id !== repId);
+
+    this.representatives = this.representatives.filter((r) => r.id !== repId);
     this.cdr.detectChanges();
-  
+
     this.representativeService.deleteRepresentative(repId).subscribe({
       next: () => {
         this.deleting = false;
         this.deleteIndex = null;
         this.showDeleteModal = false; // ✅ force hide modal
-        
+
         // Force modal closing with NgZone
         this.ngZone.run(() => {
           this.cdr.detectChanges();
           setTimeout(() => {
             this.ngZone.run(() => {
               this.cdr.detectChanges();
-              this.showNotification('success', 'Representative deleted successfully!');
+              this.showNotification(
+                'success',
+                'Representative deleted successfully!'
+              );
             });
           }, 50);
         });
@@ -462,12 +567,12 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
           this.showNotification('error', 'Failed to delete representative');
         });
-      }
+      },
     });
   }
-  
+
   private getNextTempId(): number {
-    const maxId = Math.max(0, ...this.representatives.map(r => r.id || 0));
+    const maxId = Math.max(0, ...this.representatives.map((r) => r.id || 0));
     return maxId + 1;
   }
 
@@ -479,7 +584,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.ngZone.run(() => {
       this.notification = { type, message };
       this.cdr.detectChanges();
-      
+
       setTimeout(() => {
         this.ngZone.run(() => {
           this.notification = null;
@@ -498,29 +603,31 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading governates:', error);
         this.showNotification('error', 'Failed to load governates');
-      }
+      },
     });
   }
 
   onGovernateChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     const governateName = target.value;
-    
+
     console.log('=== GOVERNATE CHANGE EVENT TRIGGERED ===');
     console.log('Governate changed to:', governateName);
     console.log('Available governates:', this.governates);
-    
-    const selectedGovernate = this.governates.find(g => g.name === governateName);
+
+    const selectedGovernate = this.governates.find(
+      (g) => g.name === governateName
+    );
     if (selectedGovernate) {
       console.log('✅ Found selected governate:', selectedGovernate);
       this.newRepresentative.governateId = selectedGovernate.id;
       this.newRepresentative.repAreas = []; // Reset areas in the DTO
       this.selectedAreas = []; // Reset selected areas
-      
+
       // Clear areas when governate changes
       this.areas = [];
       this.cdr.detectChanges();
-      
+
       // Automatically load areas for the selected governate
       this.loadAreasByGovernateId(selectedGovernate.id);
     } else {
@@ -535,8 +642,15 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
   // Load areas when dropdown is opened (fallback method)
   onAreasDropdownOpen(): void {
-    if (this.newRepresentative.governateId && this.areas.length === 0 && !this.loadingAreas) {
-      console.log('🔄 Opening areas dropdown - loading areas for governate:', this.newRepresentative.governateId);
+    if (
+      this.newRepresentative.governateId &&
+      this.areas.length === 0 &&
+      !this.loadingAreas
+    ) {
+      console.log(
+        '🔄 Opening areas dropdown - loading areas for governate:',
+        this.newRepresentative.governateId
+      );
       this.loadAreasByGovernateId(this.newRepresentative.governateId);
     }
   }
@@ -547,14 +661,14 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.loadingAreas = true;
     this.areas = [];
     this.cdr.detectChanges();
-    
+
     this.representativeService.getAreasByGovernateId(governateId).subscribe({
       next: (areas) => {
         console.log('✅ Areas API response received:', areas);
         this.areas = areas || [];
         this.loadingAreas = false;
         console.log('📊 Loaded areas for governate', governateId, ':', areas);
-        
+
         // Force change detection and update the dropdown
         this.ngZone.run(() => {
           this.cdr.detectChanges();
@@ -565,33 +679,43 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
         console.error('❌ Error loading areas:', error);
         this.loadingAreas = false;
         this.areas = [];
-        this.showNotification('error', 'Failed to load areas. Please try again.');
+        this.showNotification(
+          'error',
+          'Failed to load areas. Please try again.'
+        );
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
   onAreaSelectionChange(event: any): void {
     const target = event.target as HTMLSelectElement;
     const selectedOptions = Array.from(target.selectedOptions);
-    const selectedAreaIds = selectedOptions.map(option => parseInt(option.value));
-    
+    const selectedAreaIds = selectedOptions.map((option) =>
+      parseInt(option.value)
+    );
+
     this.selectedAreas = selectedAreaIds;
     this.newRepresentative.repAreas = this.selectedAreas;
-    
+
     console.log('Selected areas updated:', this.selectedAreas);
     this.cdr.detectChanges();
   }
 
   getAreaName(areaId: number): string {
-    const area = this.areas.find(a => a.id === areaId);
+    const area = this.areas.find((a) => a.id === areaId);
     return area ? area.name : 'Unknown Area';
   }
 
   removeArea(areaId: number): void {
-    this.selectedAreas = this.selectedAreas.filter(id => id !== areaId);
+    this.selectedAreas = this.selectedAreas.filter((id) => id !== areaId);
     this.newRepresentative.repAreas = this.selectedAreas;
-    console.log('Area removed:', areaId, 'Remaining areas:', this.selectedAreas);
+    console.log(
+      'Area removed:',
+      areaId,
+      'Remaining areas:',
+      this.selectedAreas
+    );
     this.cdr.detectChanges();
   }
 
@@ -604,29 +728,37 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
   retryLoadAreas(): void {
     if (this.newRepresentative.governateId) {
-      console.log('Retrying to load areas for governate ID:', this.newRepresentative.governateId);
+      console.log(
+        'Retrying to load areas for governate ID:',
+        this.newRepresentative.governateId
+      );
       this.loadAreasByGovernateId(this.newRepresentative.governateId);
     }
   }
 
   private updateDropdownAfterAreasLoad(): void {
     console.log('Auto-updating dropdown with', this.areas.length, 'areas');
-    
+
     // Force change detection to update the dropdown
     this.ngZone.run(() => {
       this.cdr.detectChanges();
-      
+
       // Force the dropdown to re-render
       setTimeout(() => {
         this.ngZone.run(() => {
           this.cdr.detectChanges();
           console.log('Dropdown auto-update completed');
-          
+
           // Additional check to ensure dropdown is populated
           if (this.areasSelect && this.areasSelect.nativeElement) {
             const options = this.areasSelect.nativeElement.options;
             console.log('Dropdown options count:', options.length);
-            console.log('First few options:', Array.from(options).slice(0, 3).map(opt => opt.text));
+            console.log(
+              'First few options:',
+              Array.from(options)
+                .slice(0, 3)
+                .map((opt) => opt.text)
+            );
           }
         });
       }, 100);
@@ -648,13 +780,13 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   forceDropdownRefresh(): void {
     console.log('🔄 Manually forcing dropdown refresh');
     this.cdr.detectChanges();
-    
+
     // Force a complete re-render of the dropdown
     setTimeout(() => {
       this.ngZone.run(() => {
         this.cdr.detectChanges();
         console.log('🔄 Manual refresh completed');
-        
+
         // Check if dropdown has options
         if (this.areasSelect && this.areasSelect.nativeElement) {
           const options = this.areasSelect.nativeElement.options;
@@ -662,5 +794,62 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
         }
       });
     }, 100);
+  }
+
+  // Search methods
+  onRepresentativeSearch(): void {
+    if (!this.searchTerm.trim()) {
+      this.filteredRepresentatives = [...this.representatives];
+    } else {
+      const searchLower = this.searchTerm.toLowerCase().trim();
+      this.filteredRepresentatives = this.representatives.filter(
+        (rep) =>
+          (rep.name && rep.name.toLowerCase().includes(searchLower)) ||
+          (rep.code && rep.code.toLowerCase().includes(searchLower)) ||
+          (rep.address && rep.address.toLowerCase().includes(searchLower)) ||
+          (rep.governate &&
+            rep.governate.toLowerCase().includes(searchLower)) ||
+          (rep.email && rep.email.toLowerCase().includes(searchLower)) ||
+          (rep.phoneNumber &&
+            rep.phoneNumber.toLowerCase().includes(searchLower))
+      );
+    }
+    this.cdr.detectChanges();
+  }
+
+  onPharmacySearch(): void {
+    if (!this.pharmacySearchTerm.trim()) {
+      this.filteredPharmacies = [...this.pharmacies];
+    } else {
+      const searchLower = this.pharmacySearchTerm.toLowerCase().trim();
+      this.filteredPharmacies = this.pharmacies.filter(
+        (pharmacy) =>
+          (pharmacy.name &&
+            pharmacy.name.toLowerCase().includes(searchLower)) ||
+          (pharmacy.phoneNumber &&
+            pharmacy.phoneNumber.toLowerCase().includes(searchLower)) ||
+          (pharmacy.governate &&
+            pharmacy.governate.toLowerCase().includes(searchLower)) ||
+          (pharmacy.userName &&
+            pharmacy.userName.toLowerCase().includes(searchLower)) ||
+          (pharmacy.address &&
+            pharmacy.address.toLowerCase().includes(searchLower)) ||
+          (pharmacy.areaName &&
+            pharmacy.areaName.toLowerCase().includes(searchLower))
+      );
+    }
+    this.cdr.detectChanges();
+  }
+
+  clearRepresentativeSearch(): void {
+    this.searchTerm = '';
+    this.filteredRepresentatives = [...this.representatives];
+    this.cdr.detectChanges();
+  }
+
+  clearPharmacySearch(): void {
+    this.pharmacySearchTerm = '';
+    this.filteredPharmacies = [...this.pharmacies];
+    this.cdr.detectChanges();
   }
 }
