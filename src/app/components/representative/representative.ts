@@ -328,11 +328,51 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.submitting = false;
     this.loadingPharmacies = false; // Reset pharmacy loading state
 
+    // Use the working endpoint directly
+    this.loadRepresentativesFallback();
+  }
+
+  private loadRepresentativesFallback(): void {
     this.representativeService.getAllRepresentatives().subscribe({
-      next: (data: Representative[]) => {
+      next: (data: any[]) => {
+        console.log('🔍 Fallback API Response:', data);
+        console.log('🔍 First representative data (fallback):', data[0]);
+        console.log(
+          '🔍 All fields in first rep (fallback):',
+          Object.keys(data[0])
+        );
+        console.log(
+          '🔍 Full first rep object (fallback):',
+          JSON.stringify(data[0], null, 2)
+        );
+
+        // Map API response to our interface structure - only use available fields
+        const mappedData: Representative[] = data.map((rep: any) => ({
+          id: rep.id,
+          name: rep.name,
+          code: rep.code,
+          phoneNumber: '', // Not available in API
+          email: '', // Not available in API
+          isActive: rep.isActive !== false, // Default to true if not explicitly false
+          address: rep.address || '',
+          governate: rep.governate || '',
+        }));
+
         // Filter to show only active representatives
-        this.representatives = data.filter((rep) => rep.isActive === true);
+        this.representatives = mappedData.filter(
+          (rep) => rep.isActive === true
+        );
         this.filteredRepresentatives = [...this.representatives]; // Initialize filtered array
+
+        console.log(
+          '🔍 Processed representatives (fallback):',
+          this.representatives
+        );
+        console.log(
+          '🔍 First processed rep (fallback):',
+          this.representatives[0]
+        );
+
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -485,13 +525,44 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   submitAddRepresentative(): void {
     if (this.submitting) return;
 
+    // Validate form data before submission
+    if (!this.newRepresentative.name?.trim()) {
+      this.showNotification('error', 'Name is required');
+      return;
+    }
+    if (!this.newRepresentative.email?.trim()) {
+      this.showNotification('error', 'Email is required');
+      return;
+    }
+    if (!this.newRepresentative.password?.trim()) {
+      this.showNotification('error', 'Password is required');
+      return;
+    }
+    if (!this.newRepresentative.phone?.trim()) {
+      this.showNotification('error', 'Phone is required');
+      return;
+    }
+    if (!this.newRepresentative.address?.trim()) {
+      this.showNotification('error', 'Address is required');
+      return;
+    }
+    if (!this.newRepresentative.governate?.trim()) {
+      this.showNotification('error', 'Governate is required');
+      return;
+    }
+
     this.submitting = true;
     this.validationErrors = {};
+
+    console.log('=== SUBMITTING REPRESENTATIVE ===');
+    console.log('Form data:', this.newRepresentative);
+    console.log('Selected areas:', this.selectedAreas);
 
     this.representativeService
       .createRepresentative(this.newRepresentative)
       .subscribe({
         next: (response: Representative) => {
+          console.log('✅ Success response:', response);
           this.submitting = false;
           this.resetForm(); // ✅ force reset the form state
           this.showAddModal = false; // ✅ force hide modal
@@ -513,11 +584,34 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
           this.loadRepresentatives(); // Refresh the list from the API after add
         },
         error: (error) => {
+          console.error('❌ Error creating representative:', error);
+          console.error('❌ Error details:', error.error);
+          console.error('❌ Error status:', error.status);
+          console.error('❌ Error message:', error.message);
+
           this.submitting = false;
+
           if (error?.error && typeof error.error === 'object') {
             this.validationErrors = error.error;
+            console.log('❌ Validation errors:', this.validationErrors);
+
+            // Log specific validation error messages
+            Object.keys(this.validationErrors).forEach((field) => {
+              console.log(
+                `❌ ${field} validation errors:`,
+                this.validationErrors[field]
+              );
+            });
+          } else if (error?.error && typeof error.error === 'string') {
+            console.log('❌ Error string:', error.error);
+            this.showNotification(
+              'error',
+              `Failed to add representative: ${error.error}`
+            );
+          } else {
+            this.showNotification('error', 'Failed to add representative');
           }
-          this.showNotification('error', 'Failed to add representative');
+
           this.cdr.detectChanges();
         },
       });

@@ -70,10 +70,27 @@ select.form-control option {
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
+/* Override any gradient backgrounds for card header */
+.card .card-header,
 .card-header {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-gradient: none !important;
   border-bottom: 1px solid #dee2e6;
   border-radius: 12px 12px 0 0;
+}
+
+.card-header .card-title {
+  color: #333 !important;
+}
+
+.card-header .card-category {
+  color: #666 !important;
+}
+
+.card-header .text-white {
+  color: #333 !important;
 }
 
 /* Button improvements */

@@ -72,8 +72,8 @@
             <th>ID</th>
             <th>Name</th>
             <th>Code</th>
-            <th>Phone</th>
-            <th>Email</th>
+            <th>Address</th>
+            <th>Government</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -90,8 +90,8 @@
             <td>{{ rep.id }}</td>
             <td>{{ rep.name }}</td>
             <td>{{ rep.code }}</td>
-            <td>{{ rep.phoneNumber || "N/A" }}</td>
-            <td>{{ rep.email || "N/A" }}</td>
+            <td>{{ rep.address || "N/A" }}</td>
+            <td>{{ rep.governate || "N/A" }}</td>
             <td>
               <button
                 class="btn btn-danger btn-sm"

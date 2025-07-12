@@ -1,6 +1,6 @@
 <div class="sidebar" ngSkipHydration>
   <div class="scrollbar-inner sidebar-wrapper">
-    <div class="user">
+    <!-- <div class="user">
       <div class="photo">
         <img src="assets/img/profile.jpg">
       </div>
@@ -21,13 +21,38 @@
           </ul>
         </div>
       </div>
-    </div>
+    </div> -->
     <ul class="nav">
-      <li class="nav-item active"><a href="/dashboard"><i class="la la-dashboard"></i><p>Dashboard</p></a></li>
-      <li class="nav-item"><a href="/representative"><i class="la la-th"></i><p>Representative</p></a></li>
-      <li class="nav-item"><a href="/pharmacies"><i class="la la-medkit"></i><p>Pharmacies</p></a></li>
-      <li class="nav-item"><a href="/medicines"><i class="la la-pills"></i><p>Medicines</p></a></li>
-      <li class="nav-item"><a href="/warehouses"><i class="la la-building"></i><p>Warehouses</p></a></li>
+      <li class="nav-item" [class.active]="isActive('/dashboard')">
+        <a href="/dashboard" (click)="setActive('/dashboard')">
+          <i class="la la-dashboard"></i>
+          <p>Dashboard</p>
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="isActive('/representative')">
+        <a href="/representative" (click)="setActive('/representative')">
+          <i class="la la-th"></i>
+          <p>Representative</p>
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="isActive('/pharmacies')">
+        <a href="/pharmacies" (click)="setActive('/pharmacies')">
+          <i class="la la-medkit"></i>
+          <p>Pharmacies</p>
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="isActive('/medicines')">
+        <a href="/medicines" (click)="setActive('/medicines')">
+          <i class="fa fa-house-medical"></i>
+          <p>Medicines</p>
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="isActive('/warehouses')">
+        <a href="/warehouses" (click)="setActive('/warehouses')">
+          <i class="la la-building"></i>
+          <p>Warehouses</p>
+        </a>
+      </li>
     </ul>
   </div>
-</div> 
+</div>
