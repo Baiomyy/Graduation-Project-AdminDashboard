@@ -5,10 +5,10 @@
       <div class="card">
         <div class="card-header">
           <h4 class="card-title">
-            <i class="la la-building"></i>
+            <i class="la la-building text-white"></i>
             Warehouse Management
           </h4>
-          <p class="card-category">
+          <p class="card-category text-white">
             Manage warehouse inventory, locations, and operations
           </p>
         </div>
@@ -327,22 +327,25 @@
                     </td>
                   </tr>
                   <tr>
-                    <td><strong>Approval Status:</strong></td>
+                    <td><strong>Areas:</strong></td>
                     <td>
                       <span
-                        class="badge badge-{{
-                          warehouseDetails.isWarehouseApproved
-                            ? 'success'
-                            : 'warning'
-                        }}"
+                        *ngFor="
+                          let area of warehouseDetails.areaNames;
+                          let last = last
+                        "
                       >
-                        {{
-                          warehouseDetails.isWarehouseApproved
-                            ? "Approved"
-                            : "Pending"
-                        }}
+                        {{ area }}<span *ngIf="!last">, </span>
                       </span>
                     </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Orders:</strong></td>
+                    <td>{{ warehouseDetails.totalOrders }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Medicines:</strong></td>
+                    <td>{{ warehouseDetails.totalMedicines }}</td>
                   </tr>
                 </table>
               </div>
@@ -357,24 +360,14 @@
                     <td><strong>Email:</strong></td>
                     <td>{{ warehouseDetails.email || "N/A" }}</td>
                   </tr>
-                  <tr>
-                    <td><strong>Created:</strong></td>
+                  <tr *ngIf="warehouseDetails.imageUrl">
+                    <td><strong>Image:</strong></td>
                     <td>
-                      {{
-                        warehouseDetails.createdAt
-                          ? formatDate(warehouseDetails.createdAt)
-                          : "N/A"
-                      }}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>Updated:</strong></td>
-                    <td>
-                      {{
-                        warehouseDetails.updatedAt
-                          ? formatDate(warehouseDetails.updatedAt)
-                          : "N/A"
-                      }}
+                      <img
+                        [src]="warehouseDetails.imageUrl"
+                        alt="Warehouse Image"
+                        style="max-width: 100px; max-height: 100px"
+                      />
                     </td>
                   </tr>
                 </table>
@@ -769,33 +762,55 @@
 
             <div class="row">
               <div class="col-md-6">
-                <div class="mb-3">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="isTrusted"
-                      formControlName="isTrusted"
-                    />
-                    <label class="form-check-label" for="isTrusted">
-                      Trusted Warehouse
-                    </label>
-                  </div>
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Trusted Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isTrusted')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isTrusted')
+                        ?.setValue(!warehouseForm.get('isTrusted')?.value)
+                    "
+                  >
+                    {{ warehouseForm.get("isTrusted")?.value ? "Yes" : "No" }}
+                  </button>
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="mb-3">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="isWarehouseApproved"
-                      formControlName="isWarehouseApproved"
-                    />
-                    <label class="form-check-label" for="isWarehouseApproved">
-                      Approved Warehouse
-                    </label>
-                  </div>
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Approved Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isWarehouseApproved')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isWarehouseApproved')
+                        ?.setValue(
+                          !warehouseForm.get('isWarehouseApproved')?.value
+                        )
+                    "
+                  >
+                    {{
+                      warehouseForm.get("isWarehouseApproved")?.value
+                        ? "Yes"
+                        : "No"
+                    }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -885,7 +900,73 @@
             -->
           </div>
 
-          <!-- Loading Spinner -->
+          <!-- Search and Filter Controls -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Search by English or Arabic name..."
+                [(ngModel)]="medicinesSearchTerm"
+                (ngModelChange)="onMedicinesSearchChange()"
+              />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label mb-2">Filter by Type:</label>
+              <div class="btn-group" role="group" aria-label="Drug type filter">
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === ''
+                      ? 'btn-primary'
+                      : 'btn-outline-primary'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-list"></i>
+                  All Types
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === '0'
+                      ? 'btn-success'
+                      : 'btn-outline-success'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '0';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-spa"></i>
+                  Cosmetic
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === '1'
+                      ? 'btn-info'
+                      : 'btn-outline-info'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '1';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-pills"></i>
+                  Drug
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading Spinner (moved below search/filter) -->
           <div *ngIf="loadingMedicines" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading...</span>
@@ -907,12 +988,13 @@
                   <th>Quantity</th>
                   <th>Price</th>
                   <th>Discount</th>
+                  <th>Final Price</th>
                   <th>Drug Type</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let medicine of medicines">
+                <tr *ngFor="let medicine of filteredMedicines">
                   <td>
                     <strong>{{ medicine.medicine?.name || "N/A" }}</strong>
                   </td>
@@ -935,7 +1017,22 @@
                     }}
                   </td>
                   <td>{{ medicine.discount * 100 | number : "1.0-0" }}%</td>
-                  <td>{{ medicine.medicine?.drug || "N/A" }}</td>
+                  <td>
+                    {{
+                      medicine.finalprice != null
+                        ? (medicine.finalprice | currency : "EGP")
+                        : "N/A"
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      medicine.medicine?.drug === "Prescription"
+                        ? "Cosmetic"
+                        : medicine.medicine?.drug === "Over the Counter"
+                        ? "Drug"
+                        : "N/A"
+                    }}
+                  </td>
                   <td>
                     <!-- Action buttons commented out as Excel upload is the only method
                     <div class="btn-group" role="group">
@@ -1210,11 +1307,11 @@
             <table class="table table-hover">
               <thead class="thead-light">
                 <tr>
-                  <th>Order Number</th>
-                  <th>Customer</th>
+                  <th>Order ID</th>
+                  <th>Pharmacy</th>
                   <th>Order Date</th>
-                  <th>Delivery Date</th>
-                  <th>Total Amount</th>
+                  <th>Total Price</th>
+                  <th>Quantity</th>
                   <th>Status</th>
                   <th>Items</th>
                 </tr>
@@ -1222,15 +1319,21 @@
               <tbody>
                 <tr *ngFor="let order of orders">
                   <td>
-                    <strong>{{ order.orderNumber }}</strong>
+                    <strong>#{{ order.id }}</strong>
                   </td>
                   <td>
                     <div>{{ order.customerName }}</div>
-                    <small class="text-muted">{{ order.customerPhone }}</small>
+                    <small class="text-muted"
+                      >Pharmacy ID: {{ order.items[0]?.id || "N/A" }}</small
+                    >
                   </td>
                   <td>{{ formatDate(order.orderDate) }}</td>
-                  <td>{{ formatDate(order.deliveryDate) }}</td>
                   <td>{{ order.totalAmount | currency : "EGP" }}</td>
+                  <td>
+                    <span class="badge badge-info"
+                      >{{ order.items.length }} items</span
+                    >
+                  </td>
                   <td>
                     <span
                       class="badge badge-{{ getStatusColor(order.status) }}"

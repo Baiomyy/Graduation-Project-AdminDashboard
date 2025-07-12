@@ -10,6 +10,8 @@
       <i class="la la-arrow-left"></i> Back to Representatives
     </button>
     
+
+    
     <!-- Add button only when showing representatives -->
     <button *ngIf="!isShowingPharmacies" class="btn btn-primary btn-sm float-right" style="margin-top: -38px;" (click)="openAddModal()" data-bs-toggle="" data-bs-placement="">
       <i class="la la-plus"></i> Add Representative
@@ -90,7 +92,7 @@
 
 <!-- Add Representative Modal -->
 <div *ngIf="showAddModal" class="modal-overlay" (click)="closeAddModal()" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1050; display: flex; align-items: center; justify-content: center;">
-  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 600px; width: 60vw;">
+  <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 500px; width: 90vw;">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">Add Representative</h5>
@@ -98,25 +100,186 @@
       </div>
       <form (ngSubmit)="submitAddRepresentative()" #addRepForm="ngForm" autocomplete="off">
         <div class="modal-body">
-          <div class="form-group" *ngFor="let field of fields">
-            <label [textContent]="field | titlecase"></label>
-            <input
-              [type]="field === 'password' ? 'password' : (field === 'email' ? 'email' : (field === 'phone' ? 'tel' : 'text'))"
-              class="form-control"
-              [name]="field"
-              [(ngModel)]="newRepresentative[field]"
-              [required]="true"
-              [minlength]="field === 'password' ? 8 : null"
-              [maxlength]="field === 'name' ? 100 : (field === 'address' ? 200 : (field === 'governate' ? 50 : null))"
-            />
-            <div *ngIf="validationErrors[field.charAt(0).toUpperCase() + field.slice(1)]" class="text-danger small">
-              <div *ngFor="let err of validationErrors[field.charAt(0).toUpperCase() + field.slice(1)]">{{ err }}</div>
+          <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6">
+              <!-- Name field -->
+              <div class="form-group">
+                <label>Name</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  name="name"
+                  [(ngModel)]="newRepresentative.name"
+                  required
+                  maxlength="100"
+                />
+                <div *ngIf="validationErrors['Name']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Name']">{{ err }}</div>
+                </div>
+              </div>
+
+              <!-- Email field -->
+              <div class="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  class="form-control form-control-sm"
+                  name="email"
+                  [(ngModel)]="newRepresentative.email"
+                  required
+                />
+                <div *ngIf="validationErrors['Email']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Email']">{{ err }}</div>
+                </div>
+              </div>
+
+              <!-- Phone field -->
+              <div class="form-group">
+                <label>Phone</label>
+                <input
+                  type="tel"
+                  class="form-control form-control-sm"
+                  name="phone"
+                  [(ngModel)]="newRepresentative.phone"
+                  required
+                />
+                <div *ngIf="validationErrors['Phone']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Phone']">{{ err }}</div>
+                </div>
+              </div>
+
+              <!-- Password field -->
+              <div class="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  class="form-control form-control-sm"
+                  name="password"
+                  [(ngModel)]="newRepresentative.password"
+                  required
+                  minlength="8"
+                />
+                <div *ngIf="validationErrors['Password']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Password']">{{ err }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6">
+              <!-- Address field -->
+              <div class="form-group">
+                <label>Address</label>
+                <textarea
+                  class="form-control form-control-sm"
+                  name="address"
+                  [(ngModel)]="newRepresentative.address"
+                  required
+                  maxlength="200"
+                  rows="2"
+                ></textarea>
+                <div *ngIf="validationErrors['Address']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Address']">{{ err }}</div>
+                </div>
+              </div>
+
+              <!-- Governate dropdown -->
+              <div class="form-group">
+                <label>Governate</label>
+                <select
+                  class="form-control form-control-sm"
+                  name="governate"
+                  [(ngModel)]="newRepresentative.governate"
+                  (change)="onGovernateChange($event)"
+                  required
+                >
+                  <option value="">Select Governate</option>
+                  <option *ngFor="let governate of governates" [value]="governate.name">
+                    {{ governate.name }}
+                  </option>
+                </select>
+                <div *ngIf="validationErrors['Governate']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Governate']">{{ err }}</div>
+                </div>
+              </div>
+
+              <!-- Areas dropdown -->
+              <div class="form-group">
+                <label>Areas</label>
+                
+                <!-- Governate selection required message -->
+                <div *ngIf="!newRepresentative.governate" class="text-muted small mb-2">
+                  <i class="la la-info-circle"></i> Please select a governate first
+                </div>
+                
+                <select
+                  class="form-control form-control-sm"
+                  name="areas"
+                  multiple
+                  size="4"
+                  (change)="onAreaSelectionChange($event)"
+                  (focus)="onAreasDropdownOpen()"
+                  #areasSelect
+                  [disabled]="!newRepresentative.governate || loadingAreas"
+                >
+                  <option *ngFor="let area of areas; trackBy: trackByAreaId" [value]="area.id" [selected]="isAreaSelected(area.id)">
+                    {{ area.name }}
+                  </option>
+                </select>
+                
+                <!-- Loading indicator -->
+                <div *ngIf="loadingAreas" class="text-info small mt-1">
+                  <i class="la la-spinner la-spin"></i> Loading areas for {{ newRepresentative.governate }}...
+                </div>
+                
+                <!-- Success state -->
+                <div *ngIf="areas.length > 0 && !loadingAreas" class="text-success small mt-1">
+                  <i class="la la-check"></i> {{ areas.length }} areas available for {{ newRepresentative.governate }}
+                </div>
+                
+                <!-- Empty state -->
+                <div *ngIf="areas.length === 0 && !loadingAreas && newRepresentative.governate" class="text-warning small mt-1">
+                  <i class="la la-exclamation-triangle"></i> No areas available for {{ newRepresentative.governate }}
+                </div>
+                
+                <!-- Retry button for failed loads -->
+                <div *ngIf="areas.length === 0 && !loadingAreas && newRepresentative.governate" class="mt-1">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="retryLoadAreas()">
+                    <i class="la la-refresh"></i> Retry Loading Areas
+                  </button>
+                </div>
+                
+                <!-- Selected Areas Display -->
+                <div *ngIf="selectedAreas.length > 0" class="mt-2">
+                  <label class="small">Selected Areas ({{ selectedAreas.length }}):</label>
+                  <div class="selected-areas-container">
+                    <span *ngFor="let areaId of selectedAreas" class="badge badge-primary mr-1 mb-1">
+                      <i class="la la-map-marker"></i> {{ getAreaName(areaId) }}
+                      <button type="button" class="close ml-1" (click)="removeArea(areaId)" style="font-size: 0.7em;">
+                        &times;
+                      </button>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger ml-2" (click)="clearAllAreas()">
+                      <i class="la la-times"></i> Clear All
+                    </button>
+                  </div>
+                </div>
+                
+                <div *ngIf="validationErrors['Areas']" class="text-danger small">
+                  <div *ngFor="let err of validationErrors['Areas']">{{ err }}</div>
+                </div>
+              </div>
             </div>
           </div>
+
+
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeAddModal()" data-bs-toggle="" data-bs-placement="">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="addRepForm.invalid || submitting" data-bs-toggle="" data-bs-placement="">{{ submitting ? 'Adding...' : 'Add' }}</button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" [disabled]="addRepForm.invalid || submitting">
+            {{ submitting ? 'Adding...' : 'Add Representative' }}
+          </button>
         </div>
       </form>
     </div>

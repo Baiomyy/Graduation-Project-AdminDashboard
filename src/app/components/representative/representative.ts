@@ -1,13 +1,13 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject, PLATFORM_ID, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject, PLATFORM_ID, NgZone, ViewChild, ElementRef } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NgFor, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { RepresentativeService, RepresentativeDTO, Pharmacy, RepresentativePharmaciesResponse } from '../../services/representative.service';
+import { RepresentativeService, RepresentativeDTO, Pharmacy, RepresentativePharmaciesResponse, Governate, Area } from '../../services/representative.service';
 import { OrderService } from '../../services/order.service';
 
 // Interfaces
-export type RepresentativeField = 'name' | 'address' | 'governate' | 'email' | 'password' | 'phone';
+export type RepresentativeField = 'name' | 'address' | 'governate' | 'email' | 'password' | 'phone' | 'repAreas';
 
 export interface Representative {
   id: number;
@@ -15,6 +15,7 @@ export interface Representative {
   code: string;
   address: string;
   governate: string;
+  isActive: boolean;
   email: string;
   phone: string;
 }
@@ -36,8 +37,12 @@ export interface ValidationErrors {
   styleUrl: './representative.scss'
 })
 export class RepresentativeComponent implements OnInit, OnDestroy {
+  // Component state
   representatives: Representative[] = [];
   pharmacies: Pharmacy[] = [];
+  governates: Governate[] = [];
+  areas: Area[] = [];
+  selectedAreas: number[] = []; // Changed back to array for multiple selection
   showAddModal = false;
   showDeleteModal = false;
   submitting = false;
@@ -48,8 +53,10 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   selectedRepresentative: Representative | null = null;
   pharmaciesResponse: RepresentativePharmaciesResponse | null = null;
   loadingPharmacies = false; // Separate loading state for pharmacies
+  loadingAreas = false;
+  @ViewChild('areasSelect', { static: false }) areasSelect!: ElementRef<HTMLSelectElement>;
 
-  fields: RepresentativeField[] = ['name', 'address', 'governate', 'email', 'password', 'phone'];
+  fields: RepresentativeField[] = ['name', 'address', 'governate', 'email', 'password', 'phone', 'repAreas'];
   newRepresentative: RepresentativeDTO = this.getEmptyRepresentative();
   deleteIndex: number | null = null;
   notification: Notification | null = null;
@@ -66,6 +73,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadRepresentatives();
+    this.loadGovernates();
     // Prevent tooltip initialization errors only in browser environment
     if (isPlatformBrowser(this.platformId)) {
       this.preventTooltipErrors();
@@ -247,7 +255,8 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     
     this.representativeService.getAllRepresentatives().subscribe({
       next: (data: Representative[]) => {
-        this.representatives = data;
+        // Filter to show only active representatives
+        this.representatives = data.filter(rep => rep.isActive === true);
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -325,6 +334,11 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   openAddModal(): void {
     this.showAddModal = true;
     this.resetForm();
+    
+    // Ensure proper initialization when modal opens
+    this.ngZone.run(() => {
+      this.cdr.detectChanges();
+    });
   }
 
   closeAddModal(): void {
@@ -350,6 +364,12 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   private resetForm(): void {
     this.newRepresentative = this.getEmptyRepresentative();
     this.validationErrors = {};
+    this.areas = [];
+    this.selectedAreas = []; // Reset to empty array
+    this.loadingAreas = false;
+    
+    // Force change detection to update the UI
+    this.cdr.detectChanges();
   }
 
   private getEmptyRepresentative(): RepresentativeDTO {
@@ -357,6 +377,8 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       name: '',
       address: '',
       governate: '',
+      governateId: undefined,
+      repAreas: [],
       email: '',
       password: '',
       phone: ''
@@ -427,18 +449,19 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
           setTimeout(() => {
             this.ngZone.run(() => {
               this.cdr.detectChanges();
+              this.showNotification('success', 'Representative deleted successfully!');
             });
           }, 50);
         });
-        
-        this.showNotification('success', 'Representative deleted successfully!');
       },
       error: (error) => {
         // Restore the item at the original position
         this.representatives.splice(originalIndex, 0, representative);
         this.deleting = false;
-        this.showNotification('error', 'Failed to delete representative');
-        this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          this.cdr.detectChanges();
+          this.showNotification('error', 'Failed to delete representative');
+        });
       }
     });
   }
@@ -453,14 +476,191 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   }
 
   private showNotification(type: 'success' | 'error', message: string): void {
-    this.notification = { type, message };
-    setTimeout(() => {
-      this.notification = null;
+    this.ngZone.run(() => {
+      this.notification = { type, message };
       this.cdr.detectChanges();
-    }, 3000);
+      
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          this.notification = null;
+          this.cdr.detectChanges();
+        });
+      }, 3000);
+    });
+  }
+
+  loadGovernates(): void {
+    this.representativeService.getGovernates().subscribe({
+      next: (governates) => {
+        this.governates = governates;
+        console.log('Loaded governates:', governates);
+      },
+      error: (error) => {
+        console.error('Error loading governates:', error);
+        this.showNotification('error', 'Failed to load governates');
+      }
+    });
+  }
+
+  onGovernateChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const governateName = target.value;
+    
+    console.log('=== GOVERNATE CHANGE EVENT TRIGGERED ===');
+    console.log('Governate changed to:', governateName);
+    console.log('Available governates:', this.governates);
+    
+    const selectedGovernate = this.governates.find(g => g.name === governateName);
+    if (selectedGovernate) {
+      console.log('✅ Found selected governate:', selectedGovernate);
+      this.newRepresentative.governateId = selectedGovernate.id;
+      this.newRepresentative.repAreas = []; // Reset areas in the DTO
+      this.selectedAreas = []; // Reset selected areas
+      
+      // Clear areas when governate changes
+      this.areas = [];
+      this.cdr.detectChanges();
+      
+      // Automatically load areas for the selected governate
+      this.loadAreasByGovernateId(selectedGovernate.id);
+    } else {
+      console.log('❌ No governate selected, clearing areas');
+      this.areas = [];
+      this.selectedAreas = [];
+      this.newRepresentative.governateId = undefined;
+      this.newRepresentative.repAreas = [];
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Load areas when dropdown is opened (fallback method)
+  onAreasDropdownOpen(): void {
+    if (this.newRepresentative.governateId && this.areas.length === 0 && !this.loadingAreas) {
+      console.log('🔄 Opening areas dropdown - loading areas for governate:', this.newRepresentative.governateId);
+      this.loadAreasByGovernateId(this.newRepresentative.governateId);
+    }
+  }
+
+  loadAreasByGovernateId(governateId: number): void {
+    console.log('=== AREAS API CALL STARTED ===');
+    console.log('Loading areas for governate ID:', governateId);
+    this.loadingAreas = true;
+    this.areas = [];
+    this.cdr.detectChanges();
+    
+    this.representativeService.getAreasByGovernateId(governateId).subscribe({
+      next: (areas) => {
+        console.log('✅ Areas API response received:', areas);
+        this.areas = areas || [];
+        this.loadingAreas = false;
+        console.log('📊 Loaded areas for governate', governateId, ':', areas);
+        
+        // Force change detection and update the dropdown
+        this.ngZone.run(() => {
+          this.cdr.detectChanges();
+          this.updateDropdownAfterAreasLoad();
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error loading areas:', error);
+        this.loadingAreas = false;
+        this.areas = [];
+        this.showNotification('error', 'Failed to load areas. Please try again.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onAreaSelectionChange(event: any): void {
+    const target = event.target as HTMLSelectElement;
+    const selectedOptions = Array.from(target.selectedOptions);
+    const selectedAreaIds = selectedOptions.map(option => parseInt(option.value));
+    
+    this.selectedAreas = selectedAreaIds;
+    this.newRepresentative.repAreas = this.selectedAreas;
+    
+    console.log('Selected areas updated:', this.selectedAreas);
+    this.cdr.detectChanges();
+  }
+
+  getAreaName(areaId: number): string {
+    const area = this.areas.find(a => a.id === areaId);
+    return area ? area.name : 'Unknown Area';
+  }
+
+  removeArea(areaId: number): void {
+    this.selectedAreas = this.selectedAreas.filter(id => id !== areaId);
+    this.newRepresentative.repAreas = this.selectedAreas;
+    console.log('Area removed:', areaId, 'Remaining areas:', this.selectedAreas);
+    this.cdr.detectChanges();
+  }
+
+  clearAllAreas(): void {
+    this.selectedAreas = [];
+    this.newRepresentative.repAreas = [];
+    console.log('All areas cleared');
+    this.cdr.detectChanges();
+  }
+
+  retryLoadAreas(): void {
+    if (this.newRepresentative.governateId) {
+      console.log('Retrying to load areas for governate ID:', this.newRepresentative.governateId);
+      this.loadAreasByGovernateId(this.newRepresentative.governateId);
+    }
+  }
+
+  private updateDropdownAfterAreasLoad(): void {
+    console.log('Auto-updating dropdown with', this.areas.length, 'areas');
+    
+    // Force change detection to update the dropdown
+    this.ngZone.run(() => {
+      this.cdr.detectChanges();
+      
+      // Force the dropdown to re-render
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          this.cdr.detectChanges();
+          console.log('Dropdown auto-update completed');
+          
+          // Additional check to ensure dropdown is populated
+          if (this.areasSelect && this.areasSelect.nativeElement) {
+            const options = this.areasSelect.nativeElement.options;
+            console.log('Dropdown options count:', options.length);
+            console.log('First few options:', Array.from(options).slice(0, 3).map(opt => opt.text));
+          }
+        });
+      }, 100);
+    });
+  }
+
+  isAreaSelected(areaId: number): boolean {
+    return this.selectedAreas.includes(areaId);
   }
 
   trackByRepId(index: number, item: Representative): number {
     return item.id;
+  }
+
+  trackByAreaId(index: number, item: Area): number {
+    return item.id;
+  }
+
+  forceDropdownRefresh(): void {
+    console.log('🔄 Manually forcing dropdown refresh');
+    this.cdr.detectChanges();
+    
+    // Force a complete re-render of the dropdown
+    setTimeout(() => {
+      this.ngZone.run(() => {
+        this.cdr.detectChanges();
+        console.log('🔄 Manual refresh completed');
+        
+        // Check if dropdown has options
+        if (this.areasSelect && this.areasSelect.nativeElement) {
+          const options = this.areasSelect.nativeElement.options;
+          console.log('📊 Dropdown now has', options.length, 'options');
+        }
+      });
+    }, 100);
   }
 }

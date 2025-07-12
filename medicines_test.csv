@@ -1,0 +1,7 @@
+ID,product_name,product_name_en,drug,IsExist,Discount,Quantity
+5,بروفين,Brufen,0,1,0,100
+6,كونكور,Concor,1,1,0,100
+7,دافالون,Daflon,0,1,0,100
+8,ديجوكسين,Digoxin,1,1,0,100
+9,ايجيبريل,Egypril,0,1,0,100
+10,فيوسيدين,Fucidin,1,1,0,100 

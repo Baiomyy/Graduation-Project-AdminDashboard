@@ -1,12 +1,24 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, timeout, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+
+export interface Governate {
+  id: number;
+  name: string;
+}
+
+export interface Area {
+  id: number;
+  name: string;
+}
 
 export interface RepresentativeDTO {
   name: string;
   address: string;
   governate: string;
+  governateId?: number;
+  repAreas?: number[];
   email: string;
   password: string;
   phone: string;
@@ -37,6 +49,7 @@ export interface Representative {
   code: string;
   phoneNumber: string;
   email: string;
+  isActive: boolean;
 }
 
 export interface RepresentativeResponse {
@@ -65,12 +78,28 @@ export class RepresentativeService {
 
   createRepresentative(rep: RepresentativeDTO): Observable<any> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    console.log('Outgoing payload:', rep);
-    return this.http.post('/api/Representative/CreateRepresentative', rep, { headers });
+    
+    // Create the payload with the correct field name for areas
+    const apiPayload = {
+      name: rep.name,
+      address: rep.address,
+      governate: rep.governate,
+      email: rep.email,
+      password: rep.password,
+      phone: rep.phone,
+      RepAreas: rep.repAreas // Use RepAreas as expected by the API
+    };
+    
+    console.log('=== API REQUEST ===');
+    console.log('URL:', '/api/Representative/CreateRepresentative');
+    console.log('Payload:', apiPayload);
+    console.log('Payload JSON:', JSON.stringify(apiPayload, null, 2));
+    
+    return this.http.post('/api/Representative/CreateRepresentative', apiPayload, { headers });
   }
 
   deleteRepresentative(id: number) {
-    return this.http.delete(`/api/Representative/DeleteRepresentative/${id}`);
+    return this.http.delete(`/api/Representative/SoftDeleteRepresentative/${id}`);
   }
 
   getRepresentatives(pageNumber: number = 1, pageSize: number = 1000): Observable<RepresentativeResponse> {
@@ -109,6 +138,39 @@ export class RepresentativeService {
       map(response => {
         console.log('Representative count from API:', response.totalCount);
         return response.totalCount || 0;
+      })
+    );
+  }
+
+  getGovernates(): Observable<Governate[]> {
+    return this.http.get<Governate[]>('/api/Pharmacy/register').pipe(
+      catchError(error => {
+        console.error('Error fetching governates:', error);
+        return of([]);
+      })
+    );
+  }
+
+  getAreasByGovernateId(governateId: number): Observable<Area[]> {
+    console.log('Making API call to fetch areas for governateId:', governateId);
+    const startTime = Date.now();
+    
+    return this.http.get<Area[]>(`/api/Pharmacy/register?governateId=${governateId}`).pipe(
+      timeout(10000), // 10 second timeout
+      map(areas => {
+        const endTime = Date.now();
+        console.log(`Areas API call took ${endTime - startTime}ms`);
+        console.log('Areas response:', areas);
+        return areas;
+      }),
+      catchError(error => {
+        const endTime = Date.now();
+        if (error.name === 'TimeoutError') {
+          console.error(`Areas API call timed out after ${endTime - startTime}ms`);
+          return of([]);
+        }
+        console.error(`Areas API call failed after ${endTime - startTime}ms:`, error);
+        return of([]);
       })
     );
   }

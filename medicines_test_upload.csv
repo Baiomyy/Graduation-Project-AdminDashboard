@@ -1,0 +1,9 @@
+ID,product_name,product_name_en,drug,IsExist,Discount,Quantity
+13,لانسوبرازول,Lansoprazole,0,1,0.5,100
+14,ميوكوسولفان,Mucosolvan,0,1,0.2,100
+15,نافيدوكسين,Navidoxine,0,1,0.1,100
+16,أوتريفين,Otrivin,1,1,0.25,100
+17,فينيرجان,Phenergan,0,1,0.4,100
+18,رانتاك,Rantac,0,1,0,100
+19,ستوجيرون,Stugeron,0,1,0.6,100
+20,فينتولين,Ventolin,1,1,0,100
