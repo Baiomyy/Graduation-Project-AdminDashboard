@@ -1,0 +1,254 @@
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+                 <div class="card-header" style="background: none; border-bottom: 1px solid #dee2e6;">
+           <h4 class="card-title">
+             <i class="la la-exclamation-triangle text-black"></i>
+             Missing Items Management
+           </h4>
+           <p class="card-category text-black">
+             Track and manage missing items requested by pharmacies
+           </p>
+         </div>
+        <div class="card-body">
+                                <!-- Search and Filter Section -->
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <label for="searchTerm" class="form-label">Search</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="searchTerm"
+                  placeholder="Search by pharmacy name or representative..."
+                  [(ngModel)]="searchTerm"
+                  (ngModelChange)="onSearchChange()"
+                />
+              </div>
+              <div class="col-md-4">
+                <label for="areaFilter" class="form-label">Filter by Area</label>
+                <select
+                  class="form-control"
+                  id="areaFilter"
+                  [(ngModel)]="areaFilter"
+                  (ngModelChange)="onAreaFilterChange()"
+                >
+                  <option value="">All Areas</option>
+                  <option *ngFor="let area of getUniqueAreas()" [value]="area">
+                    {{ area }}
+                  </option>
+                </select>
+              </div>
+                             <div class="col-md-4 d-flex align-items-end">
+                 <div class="d-flex justify-content-between align-items-center w-100">
+                   <button 
+                     class="btn btn-outline-secondary" 
+                     (click)="clearFilters()"
+                     [disabled]="!searchTerm && !areaFilter"
+                   >
+                     <i class="la la-times"></i> Clear Filters
+                   </button>
+                   <div>
+                     <small class="text-muted">
+                       Showing {{ missingItems.length }} of {{ allMissingItems.length }} items
+                     </small>
+                   </div>
+                 </div>
+               </div>
+            </div>
+
+          <!-- Loading Spinner -->
+          <div *ngIf="loading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading missing items...</p>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="error && !loading" class="text-center py-4">
+            <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+            <p class="mt-2 text-danger">{{ error }}</p>
+            <button class="btn btn-primary" (click)="retry()">
+              <i class="la la-refresh"></i> Retry
+            </button>
+          </div>
+
+          <!-- Missing Items List -->
+          <div *ngIf="!loading && !error" class="row">
+            <div class="col-md-12">
+              <div class="table-responsive">
+                                 <table class="table table-hover">
+                   <thead class="thead-light">
+                     <tr>
+                       <th>Pharmacy ID</th>
+                       <th>Pharmacy Name</th>
+                       <th>Area</th>
+                       <th>Representative</th>
+                     </tr>
+                   </thead>
+                                       <tbody>
+                                             <tr *ngFor="let item of missingItems" 
+                           (click)="onPharmacyClick(item)"
+                           style="cursor: pointer;">
+                         <td>
+                           {{ item.pharmacyId }}
+                         </td>
+                         <td>
+                           <strong>{{ item.pharmacyName }}</strong>
+                         </td>
+                         <td>
+                           {{ item.pharmacyArea }}
+                         </td>
+                         <td>
+                           <div>
+                             <strong>{{ item.representativeName }}</strong>
+                           </div>
+                         </td>
+                       </tr>
+                    </tbody>
+                 </table>
+              </div>
+
+              
+
+              <!-- No Data Message -->
+              <div
+                *ngIf="missingItems.length === 0 && !loading && !error"
+                class="text-center py-4"
+              >
+                <i
+                  class="la la-exclamation-triangle"
+                  style="font-size: 3rem; color: #ccc"
+                ></i>
+                <p class="mt-2 text-muted">No missing items found</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing Items Details Modal -->
+  <div
+    *ngIf="showDetailsModal"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+         <div class="modal-dialog modal-lg">
+       <div class="modal-content">
+         <div class="modal-header">
+           <h5 class="modal-title">
+             <i class="la la-exclamation-triangle"></i>
+             Missing Items Details
+           </h5>
+           <button
+             type="button"
+             class="btn-close"
+             (click)="closeDetailsModal()"
+             style="
+               background: none;
+               border: none;
+               font-size: 1.5rem;
+               color: #666;
+             "
+           >
+             ×
+           </button>
+         </div>
+         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+           <!-- Loading State -->
+          <div *ngIf="detailsLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading missing items details...</p>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="detailsError && !detailsLoading" class="text-center py-4">
+            <i class="la la-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+            <p class="mt-2 text-danger">{{ detailsError }}</p>
+            <button class="btn btn-primary" (click)="loadMissingItemDetails(selectedPharmacy!.pharmacyId)">
+              <i class="la la-refresh"></i> Retry
+            </button>
+          </div>
+
+
+
+          <!-- Missing Items Details Table -->
+          <div *ngIf="!detailsError && !detailsLoading && missingItemDetails.length > 0" class="row">
+            <div class="col-md-12">
+              <h6>Missing Medicines ({{ missingItemDetails.length }} items)</h6>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                                     <thead class="thead-light">
+                     <tr>
+                       <th>Medicine ID</th>
+                       <th>Medicine Name</th>
+                       <th>Arabic Name</th>
+                       <th>Actions</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                                           <tr *ngFor="let detail of missingItemDetails">
+                        <td>
+                          {{ detail.medicineId }}
+                        </td>
+                        <td>
+                          <strong>{{ detail.medicineName }}</strong>
+                        </td>
+                        <td>
+                          {{ detail.arabicName }}
+                        </td>
+                        <td>
+                          <button 
+                            class="btn btn-danger btn-sm" 
+                            (click)="deleteMissingItem(detail.medicineId)"
+                            title="Delete this missing item"
+                          >
+                            <i class="la la-trash"></i> Delete
+                          </button>
+                        </td>
+                      </tr>
+                   </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Missing Items Message -->
+          <div
+            *ngIf="!detailsError && !detailsLoading && missingItemDetails.length === 0"
+            class="text-center py-4"
+          >
+            <i class="la la-check-circle text-success" style="font-size: 3rem;"></i>
+            <p class="mt-2 text-success">No missing items found for this pharmacy</p>
+          </div>
+        </div>
+                 <div class="modal-footer">
+           <button 
+             type="button" 
+             class="btn btn-danger me-2" 
+             (click)="clearAllMissingItems()"
+             [disabled]="missingItemDetails.length === 0"
+           >
+             <i class="la la-trash"></i> Clear All
+           </button>
+           <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">
+             Close
+           </button>
+         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Backdrop -->
+  <div
+    *ngIf="showDetailsModal"
+    class="modal-backdrop fade show"
+  ></div>
+</div> 
