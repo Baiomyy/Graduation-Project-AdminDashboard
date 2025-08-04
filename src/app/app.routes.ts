@@ -4,6 +4,7 @@ export const routes: Routes = [
   { path: 'dashboard', loadComponent: () => import('./components/dashboard-home/dashboard-home').then(m => m.DashboardHome) },
   { path: 'profile', loadComponent: () => import('./components/user-profile/user-profile').then(m => m.UserProfile) },
   { path: 'warehouses', loadComponent: () => import('./components/warehouses/warehouses.component').then(m => m.Warehouses) },
+  { path: 'missing-items', loadComponent: () => import('./components/missing-items/missing-items.component').then(m => m.MissingItemsComponent) },
   { path: 'representative', loadComponent: () => import('./components/representative/representative').then(m => m.RepresentativeComponent) },
 
   { path: 'pharmacies', loadComponent: () => import('./components/pharmacies/pharmacies.component').then(m => m.PharmaciesComponent) },
