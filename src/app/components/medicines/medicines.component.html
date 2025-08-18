@@ -158,12 +158,12 @@
                   ></textarea>
                 </div>
                 <div class="form-group">
-                  <label for="medicineUrl">Medicine URL</label>
+                  <label for="imageUrl">Medicine URL</label>
                   <input
                     type="url"
                     class="form-control"
-                    id="medicineUrl"
-                    formControlName="medicineUrl"
+                    id="imageUrl"
+                    formControlName="imageUrl"
                     placeholder="https://example.com/image.jpg"
                   />
                 </div>
@@ -214,14 +214,14 @@
                   <td>{{ medicine.drug }}</td>
                   <td>
                     <a
-                      *ngIf="medicine.medicineUrl"
-                      [href]="medicine.medicineUrl"
+                      *ngIf="medicine.imageUrl"
+                      [href]="medicine.imageUrl"
                       target="_blank"
                       class="btn btn-sm btn-link"
                     >
                       View
                     </a>
-                    <span *ngIf="!medicine.medicineUrl">N/A</span>
+                    <span *ngIf="!medicine.imageUrl">N/A</span>
                   </td>
                   <td>
                     {{
@@ -386,14 +386,12 @@
               ></textarea>
             </div>
             <div class="mb-3">
-              <label for="editMedicineUrl" class="form-label"
-                >Medicine URL</label
-              >
+              <label for="editImageUrl" class="form-label">Medicine URL</label>
               <input
                 type="url"
                 class="form-control"
-                id="editMedicineUrl"
-                formControlName="medicineUrl"
+                id="editImageUrl"
+                formControlName="imageUrl"
                 placeholder="https://example.com/image.jpg"
               />
             </div>

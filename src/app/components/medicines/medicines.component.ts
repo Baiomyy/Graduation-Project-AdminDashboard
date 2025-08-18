@@ -40,7 +40,7 @@ export class Medicines implements OnInit {
       description: [''],
       price: [0, [Validators.required, Validators.min(0)]],
       drug: [0],
-      medicineUrl: [''],
+      imageUrl: [''],
     });
   }
 
@@ -127,7 +127,7 @@ export class Medicines implements OnInit {
       description: '',
       price: 0,
       drug: 0,
-      medicineUrl: '',
+      imageUrl: '',
     });
   }
 
@@ -144,7 +144,7 @@ export class Medicines implements OnInit {
       description: medicine.description || '',
       price: medicine.price || 0,
       drug: medicine.drug || 0,
-      medicineUrl: medicine.medicineUrl || '',
+      imageUrl: medicine.imageUrl || '',
     });
   }
 
@@ -159,15 +159,26 @@ export class Medicines implements OnInit {
       description: '',
       price: 0,
       drug: 0,
-      medicineUrl: '',
+      imageUrl: '',
     });
   }
 
   addMedicine(): void {
     console.log('Adding medicine, form valid:', this.medicineForm.valid);
     if (this.medicineForm.valid) {
-      const newMedicine = this.medicineForm.value;
-      console.log('New medicine data:', newMedicine);
+      const formData = this.medicineForm.value;
+      
+      // Clean and validate the data before sending
+      const newMedicine = {
+        englishMedicineName: formData.englishMedicineName?.trim() || '',
+        arabicMedicineName: formData.arabicMedicineName?.trim() || '',
+        description: formData.description?.trim() || '',
+        price: parseFloat(formData.price) || 0,
+        drug: parseInt(formData.drug) || 0,
+        imageUrl: formData.imageUrl?.trim() || ''
+      };
+      
+      console.log('New medicine data being sent:', JSON.stringify(newMedicine, null, 2));
       this.loading = true;
 
       this.medicineService.createMedicine(newMedicine).subscribe({
@@ -182,13 +193,39 @@ export class Medicines implements OnInit {
         },
         error: (error) => {
           console.error('Error creating medicine:', error);
-          this.error = 'Failed to add medicine: ' + (error.message || error);
+          console.error('Error details:', {
+            status: error.status,
+            statusText: error.statusText,
+            error: error.error,
+            message: error.message,
+            url: error.url
+          });
+          
+          // Handle different types of errors
+          let errorMessage = 'Failed to add medicine';
+          if (error.status === 400) {
+            if (typeof error.error === 'string') {
+              errorMessage = `Validation error: ${error.error}`;
+            } else if (error.error && typeof error.error === 'object') {
+              errorMessage = `Validation error: ${JSON.stringify(error.error)}`;
+            } else {
+              errorMessage = 'Invalid input data. Please check all required fields.';
+            }
+          } else if (error.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
+          } else {
+            errorMessage = `Error: ${error.message || 'Unknown error occurred'}`;
+          }
+          
+          this.error = errorMessage;
           this.loading = false;
           this.cdr.detectChanges();
         },
       });
     } else {
       console.log('Form is invalid:', this.medicineForm.errors);
+      console.log('Form values:', this.medicineForm.value);
+      console.log('Form status:', this.medicineForm.status);
     }
   }
 

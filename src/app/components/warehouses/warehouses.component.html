@@ -644,7 +644,7 @@
             </div>
 
             <!-- Delivery Areas Section -->
-            <div class="row" *ngIf="warehouseForm.get('governate')?.value">
+            <div class="row">
               <div class="col-md-12">
                 <div class="mb-3">
                   <label class="form-label">Delivery Areas *</label>
@@ -654,47 +654,97 @@
                     are different from the warehouse location area above).
                     <strong>At least one delivery area is required.</strong>
                   </div>
+                  <!-- Multi-select for delivery governorates -->
+                  <div class="mb-3">
+                    <label class="form-label">Delivery Governorates</label>
+                    <div
+                      class="border rounded p-2"
+                      style="max-height: 220px; overflow-y: auto"
+                    >
+                      <div
+                        class="form-check"
+                        *ngFor="let gov of pharmacyGovernorates"
+                      >
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          [id]="'gov-' + gov.id"
+                          [checked]="
+                            selectedDeliveryGovernorateIds.includes(gov.id)
+                          "
+                          (change)="onToggleDeliveryGovernorate(gov.id, $event)"
+                        />
+                        <label class="form-check-label" [for]="'gov-' + gov.id">
+                          {{ gov.name }}
+                        </label>
+                      </div>
+                      <div
+                        *ngIf="pharmacyGovernorates.length === 0"
+                        class="text-muted"
+                      >
+                        No governorates available.
+                      </div>
+                    </div>
+                  </div>
                   <div class="row">
                     <div class="col-md-6">
-                      <div class="card">
-                        <div class="card-header">
-                          <h6 class="mb-0">Available Areas</h6>
-                        </div>
-                        <div
-                          class="card-body"
-                          style="max-height: 200px; overflow-y: auto"
-                        >
-                          <div
-                            *ngFor="let area of pharmacyAreas"
-                            class="form-check"
-                          >
-                            <input
-                              class="form-check-input"
-                              type="checkbox"
-                              [id]="'area-' + area.id"
-                              [value]="area.id"
-                              (change)="
-                                onPharmacyAreaSelectionChange(area, $event)
-                              "
-                              [checked]="
-                                selectedWarehouseAreas.includes(area.id)
-                              "
-                            />
-                            <label
-                              class="form-check-label"
-                              [for]="'area-' + area.id"
-                            >
-                              {{ area.name }}
-                            </label>
-                          </div>
-                          <div
-                            *ngIf="pharmacyAreas.length === 0"
-                            class="text-muted"
-                          >
-                            No areas available for this governorate
-                          </div>
-                        </div>
+                      <div
+                        *ngIf="selectedDeliveryGovernorateIds.length === 0"
+                        class="text-muted"
+                      >
+                        Select one or more delivery governorates to view areas
                       </div>
+                      <ng-container
+                        *ngFor="let govId of selectedDeliveryGovernorateIds"
+                      >
+                        <div class="card mb-3">
+                          <div class="card-header">
+                            <h6 class="mb-0">
+                              Available Areas —
+                              {{ getGovernorateNameById(govId) }}
+                            </h6>
+                          </div>
+                          <div
+                            class="card-body"
+                            style="max-height: 200px; overflow-y: auto"
+                          >
+                            <div
+                              *ngFor="
+                                let area of deliveryAreasByGovernorate[govId]
+                              "
+                              class="form-check"
+                            >
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                [id]="'area-' + area.id"
+                                [value]="area.id"
+                                (change)="
+                                  onPharmacyAreaSelectionChange(area, $event)
+                                "
+                                [checked]="
+                                  selectedWarehouseAreas.includes(area.id)
+                                "
+                              />
+                              <label
+                                class="form-check-label"
+                                [for]="'area-' + area.id"
+                              >
+                                {{ area.name }}
+                              </label>
+                            </div>
+                            <div
+                              *ngIf="
+                                (deliveryAreasByGovernorate[govId] || [])
+                                  .length === 0
+                              "
+                              class="text-muted"
+                            >
+                              No areas available for this governorate
+                            </div>
+                          </div>
+                        </div>
+                      </ng-container>
                     </div>
                     <div class="col-md-6">
                       <div class="card">
@@ -749,7 +799,6 @@
                   <div
                     *ngIf="
                       selectedWarehouseAreas.length === 0 &&
-                      warehouseForm.get('governate')?.value &&
                       warehouseForm.get('governate')?.touched
                     "
                     class="text-danger"

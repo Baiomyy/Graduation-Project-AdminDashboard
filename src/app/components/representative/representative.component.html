@@ -604,22 +604,3 @@
     </div>
   </div>
 </div>
-
-<!-- Notification -->
-<div
-  *ngIf="notification"
-  class="alert"
-  [ngClass]="{
-    'alert-success': notification.type === 'success',
-    'alert-danger': notification.type === 'error'
-  }"
-  style="
-    position: fixed;
-    top: 80px;
-    right: 30px;
-    z-index: 2000;
-    min-width: 200px;
-  "
->
-  {{ notification.message }}
-</div>

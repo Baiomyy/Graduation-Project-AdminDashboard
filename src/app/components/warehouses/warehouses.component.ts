@@ -5,6 +5,7 @@ import {
   ChangeDetectorRef,
   NgZone,
 } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -102,6 +103,9 @@ export class Warehouses implements OnInit, OnDestroy {
   pharmacyAreas: any[] = [];
   selectedPharmacyGovernorateId: number | null = null;
   selectedPharmacyAreaId: number | null = null;
+  // Multiple delivery governorates and their areas
+  selectedDeliveryGovernorateIds: number[] = [];
+  deliveryAreasByGovernorate: { [govId: number]: any[] } = {};
 
   // Minimum price per selected delivery area
   selectedWarehouseAreasWithPrice: { areaId: number; minmumPrice: number }[] =
@@ -219,6 +223,86 @@ export class Warehouses implements OnInit, OnDestroy {
     }
   }
 
+  // Handle change in selected delivery governorates (multi-select)
+  onDeliveryGovernoratesChange(event: any): void {
+    const options: HTMLOptionsCollection = event.target.options;
+    const newlySelected: number[] = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        const val = Number(options[i].value);
+        if (!isNaN(val)) newlySelected.push(val);
+      }
+    }
+    this.applyDeliveryGovernorateSelection(newlySelected);
+  }
+
+  // Toggle handler for checkbox UI
+  onToggleDeliveryGovernorate(governorateId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement)?.checked;
+    const nextSelected = [...this.selectedDeliveryGovernorateIds];
+    if (checked) {
+      if (!nextSelected.includes(governorateId)) {
+        nextSelected.push(governorateId);
+      }
+    } else {
+      const idx = nextSelected.indexOf(governorateId);
+      if (idx !== -1) {
+        nextSelected.splice(idx, 1);
+      }
+    }
+    this.applyDeliveryGovernorateSelection(nextSelected);
+  }
+
+  // Apply selection diff: load areas for added, cleanup removed
+  private applyDeliveryGovernorateSelection(newlySelected: number[]): void {
+    // Determine added and removed governorates
+    const added = newlySelected.filter(
+      (id) => !this.selectedDeliveryGovernorateIds.includes(id)
+    );
+    const removed = this.selectedDeliveryGovernorateIds.filter(
+      (id) => !newlySelected.includes(id)
+    );
+
+    // Update selected list immediately for UI feedback
+    this.selectedDeliveryGovernorateIds = newlySelected;
+
+    // Load areas for added governorates
+    added.forEach((govId) => {
+      this.warehouseService
+        .getAreasByGovernorateIdPharmacyApi(govId)
+        .subscribe({
+          next: (areas) => {
+            this.deliveryAreasByGovernorate[govId] = areas;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error(
+              'Error loading pharmacy areas for delivery governorate:',
+              govId,
+              error
+            );
+          },
+        });
+    });
+
+    // Clean up selections for removed governorates
+    removed.forEach((govId) => {
+      const areas = this.deliveryAreasByGovernorate[govId] || [];
+      const areaIds = new Set<number>(areas.map((a: any) => a.id));
+      // Remove any selected areas that belong to this governorate
+      this.selectedWarehouseAreas = this.selectedWarehouseAreas.filter(
+        (id) => !areaIds.has(id)
+      );
+      this.selectedWarehouseAreasWithPrice =
+        this.selectedWarehouseAreasWithPrice.filter(
+          (a) => !areaIds.has(a.areaId)
+        );
+      delete this.deliveryAreasByGovernorate[govId];
+    });
+
+    this.cdr.detectChanges();
+  }
+
   // Warehouse form area methods
   onWarehouseGovernorateChange(): void {
     const selectedGovernorate = this.warehouseForm.get('governate')?.value;
@@ -284,26 +368,31 @@ export class Warehouses implements OnInit, OnDestroy {
 
   // Handle area selection change for pharmacy areas
   onPharmacyAreaSelectionChange(area: any, event: any): void {
-    console.log(
-      'Area selection changed:',
-      area,
-      'Checked:',
-      event.target.checked
-    );
+    const checked = (event.target as HTMLInputElement).checked;
+    console.log('Area selection changed:', {
+      area: area,
+      areaId: area.id,
+      checked: checked,
+      currentSelectedAreas: [...this.selectedWarehouseAreas],
+      currentAreasWithPrice: [...this.selectedWarehouseAreasWithPrice],
+    });
 
-    if (event.target.checked) {
+    if (checked) {
       if (!this.selectedWarehouseAreas.includes(area.id)) {
         this.selectedWarehouseAreas.push(area.id);
-        this.selectedWarehouseAreasWithPrice.push({
+        const areaWithPrice = {
           areaId: area.id,
           minmumPrice: 0,
+          wareHouseId: 0, // Will be set by API
+        };
+        this.selectedWarehouseAreasWithPrice.push(areaWithPrice);
+        console.log('Area added:', {
+          area: area.name,
+          id: area.id,
+          areaWithPrice: areaWithPrice,
+          allSelectedAreas: [...this.selectedWarehouseAreas],
+          allAreasWithPrice: [...this.selectedWarehouseAreasWithPrice],
         });
-        console.log('Area added:', area.name, 'ID:', area.id);
-        console.log('Selected areas:', this.selectedWarehouseAreas);
-        console.log(
-          'Selected areas with price:',
-          this.selectedWarehouseAreasWithPrice
-        );
       }
     } else {
       this.selectedWarehouseAreas = this.selectedWarehouseAreas.filter(
@@ -313,13 +402,18 @@ export class Warehouses implements OnInit, OnDestroy {
         this.selectedWarehouseAreasWithPrice.filter(
           (a) => a.areaId !== area.id
         );
-      console.log('Area removed:', area.name, 'ID:', area.id);
-      console.log('Selected areas:', this.selectedWarehouseAreas);
-      console.log(
-        'Selected areas with price:',
-        this.selectedWarehouseAreasWithPrice
-      );
+      console.log('Area removed:', {
+        area: area.name,
+        id: area.id,
+        remainingAreas: [...this.selectedWarehouseAreas],
+        remainingAreasWithPrice: [...this.selectedWarehouseAreasWithPrice],
+      });
     }
+
+    // Force change detection
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 0);
     // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
     setTimeout(() => {
       this.cdr.detectChanges();
@@ -341,8 +435,22 @@ export class Warehouses implements OnInit, OnDestroy {
 
   // Get pharmacy area name by ID
   getPharmacyAreaNameById(areaId: number): string {
-    const area = this.pharmacyAreas.find((a) => a.id === areaId);
-    return area?.name || 'Unknown Area';
+    // First check current location governorate areas
+    let area = this.pharmacyAreas.find((a) => a.id === areaId);
+    if (area) return area.name;
+    // Then check delivery governorates areas
+    for (const govId of Object.keys(this.deliveryAreasByGovernorate)) {
+      const list = this.deliveryAreasByGovernorate[Number(govId)] || [];
+      const match = list.find((a: any) => a.id === areaId);
+      if (match) return match.name;
+    }
+    return 'Unknown Area';
+  }
+
+  // Helper: get governorate name by ID
+  getGovernorateNameById(governorateId: number): string {
+    const gov = this.pharmacyGovernorates.find((g) => g.id === governorateId);
+    return gov?.name || 'Unknown Governorate';
   }
 
   loadWarehouses(): void {
@@ -463,6 +571,8 @@ export class Warehouses implements OnInit, OnDestroy {
     this.warehouseForm.reset();
     this.selectedWarehouseAreas = [];
     this.selectedWarehouseAreasWithPrice = [];
+    this.selectedDeliveryGovernorateIds = [];
+    this.deliveryAreasByGovernorate = {};
     this.cdr.detectChanges();
 
     // Fix dropdown text display after form is shown (only in browser)
@@ -542,6 +652,46 @@ export class Warehouses implements OnInit, OnDestroy {
           },
         });
     }
+
+    // Preload delivery governorates containing the selected areas
+    // Include the location governorate by default if present
+    const initialGovIds: number[] = [];
+    if (governorateId) initialGovIds.push(governorateId);
+    // For all governorates, load areas and check intersection with selected areas
+    const selectedAreaIdSet = new Set<number>(this.selectedWarehouseAreas);
+    this.pharmacyGovernorates.forEach((gov) => {
+      this.warehouseService
+        .getAreasByGovernorateIdPharmacyApi(gov.id)
+        .subscribe({
+          next: (areas) => {
+            this.deliveryAreasByGovernorate[gov.id] = areas;
+            const intersect = areas.some((a: any) =>
+              selectedAreaIdSet.has(a.id)
+            );
+            if (
+              intersect &&
+              !this.selectedDeliveryGovernorateIds.includes(gov.id)
+            ) {
+              this.selectedDeliveryGovernorateIds.push(gov.id);
+            }
+            // Ensure location governorate included
+            if (
+              initialGovIds.includes(gov.id) &&
+              !this.selectedDeliveryGovernorateIds.includes(gov.id)
+            ) {
+              this.selectedDeliveryGovernorateIds.push(gov.id);
+            }
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error(
+              'Error preloading delivery areas for governorate:',
+              gov.id,
+              error
+            );
+          },
+        });
+    });
 
     this.cdr.detectChanges();
     // Fix dropdown text display after form is shown (only in browser)
@@ -624,25 +774,77 @@ export class Warehouses implements OnInit, OnDestroy {
       finalWareHouseAreas.push({ areaId: areaId, minmumPrice: 0 });
     }
 
-    const payload = {
-      ...formValue,
-      governate: governorateName, // Use the name, not the ID
-      selectedWarehouseAreasWithPrice: this.selectedWarehouseAreasWithPrice, // Send areas with prices
-      wareHouseMedicines: this.medicines.map((med) => ({
-        medicineId: med.medicineId,
-        quantity: med.quantity,
-        price:
-          (med as any).price !== undefined
-            ? (med as any).price
-            : med.medicine?.price ?? 0,
-        discount: med.discount,
-      })),
+    // Group areas by governorate for WareHouseGovernates format
+    const areasByGovernorate = new Map<
+      number,
+      { areaId: number; minmumPrice: number }[]
+    >();
+
+    // First, collect all areas for each governorate
+    finalWareHouseAreas.forEach((area) => {
+      // Find which governorate this area belongs to
+      for (const govId of Object.keys(this.deliveryAreasByGovernorate)) {
+        const govAreas = this.deliveryAreasByGovernorate[Number(govId)] || [];
+        if (govAreas.some((a: any) => a.id === area.areaId)) {
+          if (!areasByGovernorate.has(Number(govId))) {
+            areasByGovernorate.set(Number(govId), []);
+          }
+          areasByGovernorate.get(Number(govId))?.push({
+            areaId: area.areaId,
+            minmumPrice: area.minmumPrice || 0,
+          });
+          break;
+        }
+      }
+    });
+
+    // Create WareHouseGovernates array
+    const wareHouseGovernates = Array.from(areasByGovernorate.entries()).map(
+      ([governateId, areas]) => ({
+        governateId,
+        areas,
+      })
+    );
+
+    // Debug logging before creating payload
+    console.log('Creating warehouse with areas:', {
+      selectedAreas: this.selectedWarehouseAreas,
+      areasWithPrices: this.selectedWarehouseAreasWithPrice,
+      wareHouseGovernates,
+      governorate: governorateName,
+    });
+
+    // Create JSON payload
+    const createWarehousePayload = {
+      name: formValue.name,
+      address: formValue.address,
+      governate: governorateName,
+      email: formValue.email,
+      phone: formValue.phone,
+      isTrusted: formValue.isTrusted || false,
+      isWarehouseApproved: formValue.isWarehouseApproved || false,
+      imageUrl: formValue.imageUrl || '',
+      wareHouseGovernates: wareHouseGovernates,
+      wareHouseAreas: finalWareHouseAreas,
+      wareHouseMedicines:
+        this.medicines.length > 0
+          ? this.medicines.map((med) => ({
+              wareHouseId: 0,
+              medicineId: med.medicineId,
+              quantity: med.quantity,
+              price:
+                (med as any).price !== undefined
+                  ? (med as any).price
+                  : med.medicine?.price ?? 0,
+              discount: med.discount,
+            }))
+          : [],
       id:
         this.showEditForm && this.selectedWarehouseId
           ? this.selectedWarehouseId
           : 0,
       approvedByAdminId: '',
-      imageUrl: formValue.imageUrl || '',
+      password: 'defaultPassword123', // Required by API
     };
 
     console.log('Form values:', formValue);
@@ -651,11 +853,29 @@ export class Warehouses implements OnInit, OnDestroy {
       'Selected warehouse areas with price:',
       this.selectedWarehouseAreasWithPrice
     );
-    console.log('Warehouse data being sent:', payload);
+    console.log('Warehouse data being sent:', createWarehousePayload);
 
     if (this.showEditForm && this.selectedWarehouseId) {
+      // For edit mode, convert FormData back to regular object for now
+      // TODO: Update updateWarehouse to use FormData in the future
+      const editPayload = {
+        name: formValue.name,
+        address: formValue.address,
+        phone: formValue.phone,
+        email: formValue.email,
+        governate: governorateName,
+        imageUrl: formValue.imageUrl || '',
+        isTrusted: formValue.isTrusted || false,
+        isWarehouseApproved: formValue.isWarehouseApproved || false,
+        selectedWarehouseAreasWithPrice:
+          this.selectedWarehouseAreasWithPrice.map((area) => ({
+            areaId: area.areaId,
+            minmumPrice: area.minmumPrice || 0,
+          })),
+      };
+
       this.warehouseService
-        .updateWarehouse(this.selectedWarehouseId, payload)
+        .updateWarehouse(this.selectedWarehouseId, editPayload)
         .subscribe({
           next: (updatedWarehouse) => {
             console.log('Warehouse updated:', updatedWarehouse);
@@ -671,8 +891,8 @@ export class Warehouses implements OnInit, OnDestroy {
           },
         });
     } else {
-      console.log('Creating warehouse with data:', payload);
-      this.warehouseService.createWarehouse(payload).subscribe({
+      console.log('Creating warehouse with FormData');
+      this.warehouseService.createWarehouse(createWarehousePayload).subscribe({
         next: (newWarehouse) => {
           console.log('Warehouse created successfully:', newWarehouse);
           this.showSuccessMessage('Warehouse created successfully!');
@@ -740,6 +960,8 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedWarehouseAreasWithPrice = [];
     this.warehouseAreas = [];
     this.warehouseLocationAreas = [];
+    this.selectedDeliveryGovernorateIds = [];
+    this.deliveryAreasByGovernorate = {};
     this.warehouseForm.reset();
     this.cdr.detectChanges();
   }

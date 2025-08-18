@@ -10,7 +10,7 @@ export interface Medicine {
   description?: string;
   price: number;
   drug?: number;
-  medicineUrl?: string;
+  imageUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -27,7 +27,7 @@ export interface PaginatedResponse<T> {
   providedIn: 'root',
 })
 export class MedicineService {
-  private baseUrl = 'http://www.pharmaatoncepredeploy.somee.com/api/Medicine';
+  private baseUrl = '/api/Medicine';
 
   constructor(private http: HttpClient) {}
 

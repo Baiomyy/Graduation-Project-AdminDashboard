@@ -291,59 +291,17 @@ export class WarehouseService {
   }
 
   // Create new warehouse
-  createWarehouse(
-    warehouse: Partial<Warehouse> & {
-      selectedAreas?: number[];
-      selectedWarehouseAreasWithPrice?: {
-        areaId: number;
-        minmumPrice: number;
-      }[];
-    }
-  ): Observable<Warehouse> {
-    // Map the data to match the API structure
-    let wareHouseAreas: { areaId: number; minmumPrice: number }[] = [];
-
-    // Use selectedWarehouseAreasWithPrice if available (from component), otherwise fall back to selectedAreas
-    if (
-      warehouse.selectedWarehouseAreasWithPrice &&
-      warehouse.selectedWarehouseAreasWithPrice.length > 0
-    ) {
-      wareHouseAreas = warehouse.selectedWarehouseAreasWithPrice;
-    } else if (warehouse.selectedAreas) {
-      wareHouseAreas = warehouse.selectedAreas.map((areaId: number) => ({
-        areaId: areaId,
-        minmumPrice: 0, // Default minimum price
-      }));
-    }
-
-    const payload = {
-      name: warehouse.name,
-      address: warehouse.address,
-      governate: warehouse.governate,
-      email: warehouse.email,
-      phone: warehouse.phone,
-      ImageUrl: warehouse.imageUrl || '', // Capitalized to match API expectation
-      password: 'defaultPassword123', // Add default password as required by API
-      isTrusted:
-        typeof warehouse.isTrusted === 'string'
-          ? warehouse.isTrusted === 'true'
-          : !!warehouse.isTrusted,
-      wareHouseAreas: wareHouseAreas,
-    };
-
-    console.log(
-      'Service: Selected areas (delivery areas):',
-      warehouse.selectedAreas
-    );
-    console.log(
-      'Service: Selected areas with prices:',
-      warehouse.selectedWarehouseAreasWithPrice
-    );
-    console.log('Service: Mapped wareHouseAreas:', wareHouseAreas);
+  createWarehouse(payload: any): Observable<Warehouse> {
+    // Debug logging
     console.log('Service: Creating warehouse with payload:', payload);
-    console.log('Service: Using endpoint:', this.createUrl);
 
-    return this.http.post<Warehouse>(this.createUrl, payload);
+    console.log('Service: Using endpoint:', this.createUrl);
+    return this.http.post<Warehouse>(this.createUrl, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
   }
 
   // Update warehouse

@@ -399,48 +399,45 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
             this.pharmaciesResponse = response;
             this.pharmacies = response.pharmacies;
             this.filteredPharmacies = [...this.pharmacies]; // Initialize filtered pharmacies
-            // Fetch order count for each pharmacy
+
+            // Stop loading immediately when pharmacy data is received
+            this.loadingPharmacies = false;
+            this.cdr.detectChanges();
+
+            // Fetch order count for each pharmacy asynchronously (don't block UI)
             if (this.pharmacies && this.pharmacies.length > 0) {
-              let completed = 0;
               this.pharmacies.forEach((pharmacy, idx) => {
                 this.orderService.getOrdersByPharmacyId(pharmacy.id).subscribe({
                   next: (orderResp) => {
-                    this.pharmacies[idx].orderCount =
-                      orderResp.result?.items?.length || 0;
-                    this.filteredPharmacies[idx].orderCount =
-                      this.pharmacies[idx].orderCount; // Update filtered array too
-                    completed++;
-                    if (completed === this.pharmacies.length) {
-                      this.loadingPharmacies = false;
+                    this.ngZone.run(() => {
+                      this.pharmacies[idx].orderCount =
+                        orderResp.result?.items?.length || 0;
+                      this.filteredPharmacies[idx].orderCount =
+                        this.pharmacies[idx].orderCount; // Update filtered array too
                       this.cdr.detectChanges();
-                    }
+                    });
                   },
                   error: () => {
-                    this.pharmacies[idx].orderCount = 0;
-                    this.filteredPharmacies[idx].orderCount = 0; // Update filtered array too
-                    completed++;
-                    if (completed === this.pharmacies.length) {
-                      this.loadingPharmacies = false;
+                    this.ngZone.run(() => {
+                      this.pharmacies[idx].orderCount = 0;
+                      this.filteredPharmacies[idx].orderCount = 0; // Update filtered array too
                       this.cdr.detectChanges();
-                    }
+                    });
                   },
                 });
               });
-            } else {
-              this.loadingPharmacies = false;
-              this.cdr.detectChanges();
             }
           });
         },
         error: (error) => {
           this.ngZone.run(() => {
             this.loadingPharmacies = false;
+            this.cdr.detectChanges(); // Ensure spinner stops on error
             this.isShowingPharmacies = false;
             this.selectedRepresentative = null;
             this.pharmaciesResponse = null;
             this.pharmacies = [];
             this.filteredPharmacies = [];
-            this.cdr.detectChanges();
           });
           this.showNotification(
             'error',
@@ -632,14 +629,14 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
     // Remove from both arrays
     this.representatives = this.representatives.filter((r) => r.id !== repId);
-    
+
     // Update filtered array - if there's a search term, re-apply the filter
     if (this.searchTerm.trim()) {
       this.onRepresentativeSearch(); // Re-apply search filter
     } else {
       this.filteredRepresentatives = [...this.representatives]; // Update filtered array
     }
-    
+
     this.cdr.detectChanges();
 
     this.representativeService.deleteRepresentative(repId).subscribe({
@@ -665,14 +662,14 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
       error: (error) => {
         // Restore the item at the original position
         this.representatives.splice(originalIndex, 0, representative);
-        
+
         // Re-apply search filter or update filtered array
         if (this.searchTerm.trim()) {
           this.onRepresentativeSearch(); // Re-apply search filter
         } else {
           this.filteredRepresentatives = [...this.representatives]; // Update filtered array
         }
-        
+
         this.deleting = false;
         this.ngZone.run(() => {
           this.cdr.detectChanges();
