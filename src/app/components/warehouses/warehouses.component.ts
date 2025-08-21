@@ -25,6 +25,7 @@ import {
   WarehouseCustomDetails, // <-- add this import
 } from '../../services/warehouse.service';
 import { Subscription } from 'rxjs';
+import jsPDF from 'jspdf';
 
 @Component({
   selector: 'app-warehouses',
@@ -34,6 +35,8 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./warehouses.scss'],
 })
 export class Warehouses implements OnInit, OnDestroy {
+  warehouseImagePreview: string | ArrayBuffer | null = null;
+  selectedWarehouseImageFile: File | null = null;
   // Warehouse list properties
   warehouses: Warehouse[] = [];
   currentPage: number = 1;
@@ -127,6 +130,7 @@ export class Warehouses implements OnInit, OnDestroy {
       governate: ['', Validators.required],
       warehouseLocationArea: ['', Validators.required], // Warehouse location area
       imageUrl: [''],
+      password: ['', Validators.required],
       isTrusted: [false],
       isWarehouseApproved: [false],
       selectedAreas: [[]], // For storing selected delivery area IDs
@@ -599,6 +603,7 @@ export class Warehouses implements OnInit, OnDestroy {
       email: warehouse.email,
       governate: governorateId,
       imageUrl: warehouse.imageUrl,
+      password: warehouse.password || '', // Pre-fill with warehouse's password if available
       isTrusted: warehouse.isTrusted,
       isWarehouseApproved: warehouse.isWarehouseApproved,
     });
@@ -814,38 +819,87 @@ export class Warehouses implements OnInit, OnDestroy {
       governorate: governorateName,
     });
 
-    // Create JSON payload
-    const createWarehousePayload = {
-      name: formValue.name,
-      address: formValue.address,
-      governate: governorateName,
-      email: formValue.email,
-      phone: formValue.phone,
-      isTrusted: formValue.isTrusted || false,
-      isWarehouseApproved: formValue.isWarehouseApproved || false,
-      imageUrl: formValue.imageUrl || '',
-      wareHouseGovernates: wareHouseGovernates,
-      wareHouseAreas: finalWareHouseAreas,
-      wareHouseMedicines:
-        this.medicines.length > 0
-          ? this.medicines.map((med) => ({
-              wareHouseId: 0,
-              medicineId: med.medicineId,
-              quantity: med.quantity,
-              price:
-                (med as any).price !== undefined
-                  ? (med as any).price
-                  : med.medicine?.price ?? 0,
-              discount: med.discount,
-            }))
-          : [],
-      id:
+    // Create FormData payload for image upload
+    let createWarehousePayload: any;
+    if (this.selectedWarehouseImageFile) {
+      createWarehousePayload = new FormData();
+      createWarehousePayload.append('name', formValue.name);
+      createWarehousePayload.append('address', formValue.address);
+      createWarehousePayload.append('governate', governorateName);
+      createWarehousePayload.append('email', formValue.email);
+      createWarehousePayload.append('phone', formValue.phone);
+      createWarehousePayload.append('isTrusted', formValue.isTrusted || false);
+      createWarehousePayload.append(
+        'isWarehouseApproved',
+        formValue.isWarehouseApproved || false
+      );
+      createWarehousePayload.append(
+        'wareHouseGovernates',
+        JSON.stringify(wareHouseGovernates)
+      );
+      createWarehousePayload.append(
+        'wareHouseAreas',
+        JSON.stringify(finalWareHouseAreas)
+      );
+      createWarehousePayload.append(
+        'wareHouseMedicines',
+        JSON.stringify(
+          this.medicines.length > 0
+            ? this.medicines.map((med) => ({
+                wareHouseId: 0,
+                medicineId: med.medicineId,
+                quantity: med.quantity,
+                price:
+                  (med as any).price !== undefined
+                    ? (med as any).price
+                    : med.medicine?.price ?? 0,
+                discount: med.discount,
+              }))
+            : []
+        )
+      );
+      createWarehousePayload.append(
+        'id',
         this.showEditForm && this.selectedWarehouseId
           ? this.selectedWarehouseId
-          : 0,
-      approvedByAdminId: '',
-      password: 'defaultPassword123', // Required by API
-    };
+          : 0
+      );
+      createWarehousePayload.append('approvedByAdminId', '');
+      createWarehousePayload.append('password', 'defaultPassword123');
+      createWarehousePayload.append('image', this.selectedWarehouseImageFile);
+    } else {
+      createWarehousePayload = {
+        name: formValue.name,
+        address: formValue.address,
+        governate: governorateName,
+        email: formValue.email,
+        phone: formValue.phone,
+        isTrusted: formValue.isTrusted || false,
+        isWarehouseApproved: formValue.isWarehouseApproved || false,
+        imageUrl: formValue.imageUrl || '',
+        wareHouseGovernates: wareHouseGovernates,
+        wareHouseAreas: finalWareHouseAreas,
+        wareHouseMedicines:
+          this.medicines.length > 0
+            ? this.medicines.map((med) => ({
+                wareHouseId: 0,
+                medicineId: med.medicineId,
+                quantity: med.quantity,
+                price:
+                  (med as any).price !== undefined
+                    ? (med as any).price
+                    : med.medicine?.price ?? 0,
+                discount: med.discount,
+              }))
+            : [],
+        id:
+          this.showEditForm && this.selectedWarehouseId
+            ? this.selectedWarehouseId
+            : 0,
+        approvedByAdminId: '',
+        password: 'defaultPassword123', // Required by API
+      };
+    }
 
     console.log('Form values:', formValue);
     console.log('Selected warehouse areas:', this.selectedWarehouseAreas);
@@ -858,22 +912,46 @@ export class Warehouses implements OnInit, OnDestroy {
     if (this.showEditForm && this.selectedWarehouseId) {
       // For edit mode, convert FormData back to regular object for now
       // TODO: Update updateWarehouse to use FormData in the future
-      const editPayload = {
-        name: formValue.name,
-        address: formValue.address,
-        phone: formValue.phone,
-        email: formValue.email,
-        governate: governorateName,
-        imageUrl: formValue.imageUrl || '',
-        isTrusted: formValue.isTrusted || false,
-        isWarehouseApproved: formValue.isWarehouseApproved || false,
-        selectedWarehouseAreasWithPrice:
-          this.selectedWarehouseAreasWithPrice.map((area) => ({
-            areaId: area.areaId,
-            minmumPrice: area.minmumPrice || 0,
-          })),
-      };
-
+      let editPayload: any;
+      if (this.selectedWarehouseImageFile) {
+        editPayload = new FormData();
+        editPayload.append('name', formValue.name);
+        editPayload.append('address', formValue.address);
+        editPayload.append('phone', formValue.phone);
+        editPayload.append('email', formValue.email);
+        editPayload.append('governate', governorateName);
+        editPayload.append('isTrusted', formValue.isTrusted || false);
+        editPayload.append(
+          'isWarehouseApproved',
+          formValue.isWarehouseApproved || false
+        );
+        editPayload.append(
+          'selectedWarehouseAreasWithPrice',
+          JSON.stringify(
+            this.selectedWarehouseAreasWithPrice.map((area) => ({
+              areaId: area.areaId,
+              minmumPrice: area.minmumPrice || 0,
+            }))
+          )
+        );
+        editPayload.append('image', this.selectedWarehouseImageFile);
+      } else {
+        editPayload = {
+          name: formValue.name,
+          address: formValue.address,
+          phone: formValue.phone,
+          email: formValue.email,
+          governate: governorateName,
+          imageUrl: formValue.imageUrl || '',
+          isTrusted: formValue.isTrusted || false,
+          isWarehouseApproved: formValue.isWarehouseApproved || false,
+          selectedWarehouseAreasWithPrice:
+            this.selectedWarehouseAreasWithPrice.map((area) => ({
+              areaId: area.areaId,
+              minmumPrice: area.minmumPrice || 0,
+            })),
+        };
+      }
       this.warehouseService
         .updateWarehouse(this.selectedWarehouseId, editPayload)
         .subscribe({
@@ -1185,6 +1263,52 @@ export class Warehouses implements OnInit, OnDestroy {
   }
 
   // Orders Management
+  onWarehouseImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedWarehouseImageFile = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result ?? null;
+        this.warehouseImagePreview = result;
+      };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      this.selectedWarehouseImageFile = null;
+      this.warehouseImagePreview = null;
+    }
+  }
+  printOrderPdf(order: WarehouseOrder): void {
+    const doc = new jsPDF();
+    let y = 10;
+    doc.setFontSize(16);
+    doc.text(`Order Details`, 10, y);
+    y += 10;
+    doc.setFontSize(12);
+    doc.text(`Order ID: #${order.id}`, 10, y);
+    y += 8;
+    doc.text(`Pharmacy: ${order.customerName}`, 10, y);
+    y += 8;
+    doc.text(`Order Date: ${this.formatDate(order.orderDate)}`, 10, y);
+    y += 8;
+    doc.text(`Total Price: ${order.totalAmount} EGP`, 10, y);
+    y += 8;
+    doc.text(`Status: ${order.status}`, 10, y);
+    y += 10;
+    doc.text(`Items:`, 10, y);
+    y += 8;
+    order.items.forEach((item: any, idx: number) => {
+      doc.text(
+        `${idx + 1}. ${item.medicineName} - Qty: ${item.quantity} - Price: ${
+          item.unitPrice
+        } EGP`,
+        12,
+        y
+      );
+      y += 8;
+    });
+    doc.save(`order_${order.id}.pdf`);
+  }
   onViewOrders(warehouseId: number): void {
     this.selectedWarehouseId = warehouseId;
     this.showOrders = true;

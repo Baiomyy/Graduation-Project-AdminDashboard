@@ -494,6 +494,25 @@
                 Please enter a valid email address
               </div>
             </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password *</label>
+              <input
+                type="text"
+                class="form-control"
+                id="password"
+                formControlName="password"
+                required
+              />
+              <div
+                *ngIf="
+                  warehouseForm.get('password')?.invalid &&
+                  warehouseForm.get('password')?.touched
+                "
+                class="text-danger"
+              >
+                Password is required
+              </div>
+            </div>
 
             <div class="mb-3">
               <label for="address" class="form-label">Address *</label>
@@ -631,14 +650,22 @@
               <div class="col-md-12">
                 <div class="mb-3">
                   <label for="imageUrl" class="form-label"
-                    >Warehouse Image URL</label
+                    >Warehouse Image</label
                   >
                   <input
-                    type="url"
+                    type="file"
                     class="form-control"
-                    id="imageUrl"
-                    formControlName="imageUrl"
+                    id="warehouseImage"
+                    (change)="onWarehouseImageSelected($event)"
+                    accept="image/*"
                   />
+                  <div *ngIf="warehouseImagePreview" class="mt-2">
+                    <img
+                      [src]="warehouseImagePreview"
+                      alt="Preview"
+                      style="max-width: 100%; max-height: 200px"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1397,6 +1424,13 @@
                       title="View Items"
                     >
                       <i class="la la-list"></i> {{ order.items.length }} items
+                    </button>
+                    <button
+                      class="btn btn-sm btn-primary ms-2"
+                      (click)="printOrderPdf(order)"
+                      title="Print Order PDF"
+                    >
+                      <i class="la la-print"></i> Print PDF
                     </button>
                   </td>
                 </tr>

@@ -20,6 +20,7 @@ export interface Warehouse {
   wareHouseAreas?: WareHouseArea[];
   orders?: any[];
   wareHouseMedicines?: WareHouseMedicine[];
+  password?: string; // Added password property
 }
 
 export interface WareHouseArea {
@@ -294,14 +295,35 @@ export class WarehouseService {
   createWarehouse(payload: any): Observable<Warehouse> {
     // Debug logging
     console.log('Service: Creating warehouse with payload:', payload);
-
     console.log('Service: Using endpoint:', this.createUrl);
-    return this.http.post<Warehouse>(this.createUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    });
+    let options: any = {};
+    // If FormData, do not set Content-Type (browser will set it)
+    if (payload instanceof FormData) {
+      options = { headers: { Accept: 'application/json' } };
+      // Rename image field to Photo for API
+      if (payload.has('image')) {
+        const imageFile = payload.get('image');
+        payload.delete('image');
+        if (imageFile) {
+          payload.append('Photo', imageFile as Blob);
+        }
+      }
+      payload.append('ImageUrl', 'string');
+      payload.append('password', payload.get('password') || '');
+      return this.http
+        .post<any>(this.createUrl, payload, { ...options, observe: 'response' })
+        .pipe(map((res: any) => res.body as Warehouse));
+    } else {
+      options = {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      };
+      return this.http
+        .post<any>(this.createUrl, payload, { ...options, observe: 'response' })
+        .pipe(map((res: any) => res.body as Warehouse));
+    }
   }
 
   // Update warehouse
@@ -345,7 +367,8 @@ export class WarehouseService {
       wareHouseAreas: wareHouseAreas,
       phone: warehouse.phone,
       email: warehouse.email, // Added email to payload
-      imageUrl: warehouse.imageUrl || '', // Lowercase to match API expectation
+      imageUrl: 'string', // Always send ImageUrl with default value
+      password: (warehouse as any).password || '', // Add password to payload
     };
 
     console.log(
@@ -406,56 +429,34 @@ export class WarehouseService {
     return this.http
       .get<ApiWarehouseMedicinesResponse>(
         `/api/Warehouse/GetWarehousMedicines/${warehouseId}/medicines`,
-        { params }
+        {
+          params,
+        }
       )
       .pipe(
         map((response) => {
-          console.log('Service: API response:', response);
-          console.log(
-            'Service: Response items count:',
-            response.items?.length || 0
-          );
-
-          if (!response.items || response.items.length === 0) {
-            console.log('Service: No items in response, returning empty array');
-            return {
-              items: [],
-              totalCount: 0,
-            };
-          }
-
-          // Transform API response to expected format
-          const transformedMedicines: WarehouseMedicine[] = response.items.map(
-            (item, index) => {
-              console.log(`Service: Processing item ${index}:`, item);
-
-              const transformed: WarehouseMedicine = {
-                medicineId: item.medicineId,
-                wareHouseId: warehouseId,
-                quantity: item.quantity,
-                discount: item.discount,
-                finalprice: item.finalprice,
+          const transformedMedicines = (response.items || []).map(
+            (item: any, index: number) => {
+              const transformed = {
+                ...item,
                 medicine: {
                   id: item.medicineId,
                   name: item.englishMedicineName,
                   arabicName: item.arabicMedicineName,
-                  description: `${item.englishMedicineName} - ${item.arabicMedicineName}`,
+                  description: item.description || '',
                   price: item.price,
                   medicineUrl: item.medicineUrl,
                   drug: this.getDrugTypeName(item.drug),
                 },
               };
-
               console.log(`Service: Transformed item ${index}:`, transformed);
               return transformed;
             }
           );
-
           console.log(
             'Service: All transformed medicines:',
             transformedMedicines
           );
-
           return {
             items: transformedMedicines,
             totalCount: response.totalCount,
@@ -467,6 +468,8 @@ export class WarehouseService {
         })
       );
   }
+
+  // Update warehouse
 
   // Helper method to convert drug type number to string
   private getDrugTypeName(drugType: number): string {
@@ -660,54 +663,6 @@ export class WarehouseService {
             });
 
           // Validate the payload structure
-          const invalidMedicines = medicinesToUpdate.filter((medicine) => {
-            const isInvalid =
-              !medicine.medicineId ||
-              medicine.medicineId <= 0 ||
-              medicine.quantity < 0 ||
-              medicine.discount < 0 ||
-              medicine.discount > 1;
-
-            if (isInvalid) {
-              console.log('Service: Invalid medicine found:', {
-                medicineId: medicine.medicineId,
-                quantity: medicine.quantity,
-                discount: medicine.discount,
-                reason: !medicine.medicineId
-                  ? 'No medicineId'
-                  : medicine.medicineId <= 0
-                  ? 'Invalid medicineId'
-                  : medicine.quantity < 0
-                  ? 'Negative quantity'
-                  : medicine.discount < 0
-                  ? 'Negative discount'
-                  : medicine.discount > 1
-                  ? 'Discount > 1'
-                  : 'Unknown',
-              });
-            }
-
-            return isInvalid;
-          });
-
-          if (invalidMedicines.length > 0) {
-            console.error(
-              'Service: Invalid medicines found:',
-              invalidMedicines
-            );
-            console.log(
-              'Service: All medicines for debugging:',
-              medicinesToUpdate
-            );
-            observer.next({
-              success: false,
-              message:
-                'Invalid data found in Excel file. Please check the data format.',
-              importedCount: 0,
-            });
-            observer.complete();
-            return;
-          }
 
           console.log('Service: Processed Excel data:', {
             totalRows: excelData.length,
