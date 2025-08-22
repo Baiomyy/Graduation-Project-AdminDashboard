@@ -85,7 +85,20 @@
               </select>
             </div>
             -->
-            <div class="col-md-6 d-flex align-items-end">
+            <div class="col-md-3">
+              <label for="warehouseSearchInput" class="form-label"
+                >Search by Name</label
+              >
+              <input
+                id="warehouseSearchInput"
+                type="text"
+                class="form-control"
+                placeholder="Enter warehouse name..."
+                [(ngModel)]="warehouseSearchTerm"
+                (ngModelChange)="onWarehouseSearchChange()"
+              />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
               <button class="btn btn-primary" (click)="showAddWarehouseForm()">
                 <i class="la la-plus"></i> Add New Warehouse
               </button>
@@ -1072,10 +1085,10 @@
               <tbody>
                 <tr *ngFor="let medicine of filteredMedicines">
                   <td>
-                    <strong>{{ medicine.medicine?.name || "N/A" }}</strong>
+                    <strong>{{ medicine.medicine.name || "N/A" }}</strong>
                   </td>
-                  <td>{{ medicine.medicine?.arabicName || "N/A" }}</td>
-                  <td>{{ medicine.medicine?.description || "N/A" }}</td>
+                  <td>{{ medicine.medicine.arabicName || "N/A" }}</td>
+                  <td>{{ medicine.medicine.description || "N/A" }}</td>
                   <td>
                     <span
                       class="badge badge-{{
@@ -1087,7 +1100,7 @@
                   </td>
                   <td>
                     {{
-                      medicine.medicine?.price
+                      medicine.medicine.price
                         ? (medicine.medicine.price | currency : "EGP")
                         : "N/A"
                     }}
@@ -1102,9 +1115,9 @@
                   </td>
                   <td>
                     {{
-                      medicine.medicine?.drug === "Prescription"
+                      medicine.medicine.drug === "Prescription"
                         ? "Cosmetic"
-                        : medicine.medicine?.drug === "Over the Counter"
+                        : medicine.medicine.drug === "Over the Counter"
                         ? "Drug"
                         : "N/A"
                     }}
@@ -1400,7 +1413,7 @@
                   <td>
                     <div>{{ order.customerName }}</div>
                     <small class="text-muted"
-                      >Pharmacy ID: {{ order.items[0]?.id || "N/A" }}</small
+                      >Pharmacy ID: {{ order.items[0].id || "N/A" }}</small
                     >
                   </td>
                   <td>{{ formatDate(order.orderDate) }}</td>

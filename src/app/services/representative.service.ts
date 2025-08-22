@@ -13,6 +13,12 @@ export interface Area {
   name: string;
 }
 
+export interface AreaRep {
+  id: number;
+  areaName: string;
+  governateId: number;
+}
+
 export interface RepresentativeDTO {
   name: string;
   address: string;
@@ -187,29 +193,40 @@ export class RepresentativeService {
   }
 
   getAreasByGovernateId(governateId: number): Observable<Area[]> {
-    console.log('Making API call to fetch areas for governateId:', governateId);
+    console.log(
+      'Making API call to fetch areas for representative governateId:',
+      governateId
+    );
     const startTime = Date.now();
 
     return this.http
-      .get<Area[]>(`/api/Pharmacy/register?governateId=${governateId}`)
+      .get<any>(
+        `/api/Representative/GetAreasForRepByGovernateIdAsync?GovId=${governateId}`
+      )
       .pipe(
         timeout(10000), // 10 second timeout
         map((areas) => {
           const endTime = Date.now();
-          console.log(`Areas API call took ${endTime - startTime}ms`);
-          console.log('Areas response:', areas);
+          console.log(
+            `Representative Areas API call took ${endTime - startTime}ms`
+          );
+          console.log('Representative Areas response:', areas);
           return areas;
         }),
         catchError((error) => {
           const endTime = Date.now();
           if (error.name === 'TimeoutError') {
             console.error(
-              `Areas API call timed out after ${endTime - startTime}ms`
+              `Representative Areas API call timed out after ${
+                endTime - startTime
+              }ms`
             );
             return of([]);
           }
           console.error(
-            `Areas API call failed after ${endTime - startTime}ms:`,
+            `Representative Areas API call failed after ${
+              endTime - startTime
+            }ms:`,
             error
           );
           return of([]);

@@ -35,6 +35,8 @@ import jsPDF from 'jspdf';
   styleUrls: ['./warehouses.scss'],
 })
 export class Warehouses implements OnInit, OnDestroy {
+  // Search term for warehouse name
+  warehouseSearchTerm: string = '';
   warehouseImagePreview: string | ArrayBuffer | null = null;
   selectedWarehouseImageFile: File | null = null;
   // Warehouse list properties
@@ -486,7 +488,7 @@ export class Warehouses implements OnInit, OnDestroy {
         this.pageSize,
         '', // governorate - not used with new API
         '', // area - not used with new API
-        '', // search - not used with new API
+        this.warehouseSearchTerm,
         this.selectedAreaId
       )
       .subscribe({
@@ -555,6 +557,13 @@ export class Warehouses implements OnInit, OnDestroy {
     }
 
     this.currentPage = page;
+    this.loadWarehouses();
+  }
+
+  // Handler for warehouse search input
+  onWarehouseSearchChange(): void {
+    // Reset to first page when searching
+    this.currentPage = 1;
     this.loadWarehouses();
   }
 

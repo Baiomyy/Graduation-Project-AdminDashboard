@@ -19,7 +19,7 @@ import {
   Pharmacy,
   RepresentativePharmaciesResponse,
   Governate,
-  Area,
+  AreaRep,
 } from '../../services/representative.service';
 import { OrderService } from '../../services/order.service';
 
@@ -67,7 +67,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
   pharmacies: Pharmacy[] = [];
   filteredPharmacies: Pharmacy[] = []; // Add filtered pharmacies array
   governates: Governate[] = [];
-  areas: Area[] = [];
+  areas: AreaRep[] = [];
   selectedAreas: number[] = []; // Changed back to array for multiple selection
   showAddModal = false;
   showDeleteModal = false;
@@ -773,9 +773,19 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     this.representativeService.getAreasByGovernateId(governateId).subscribe({
       next: (areas) => {
         console.log('✅ Areas API response received:', areas);
-        this.areas = areas || [];
+        // Map API response to AreaRep[] if needed
+        this.areas = (areas || []).map((a: any) => ({
+          id: a.id,
+          areaName: a.areaName || a.name || '',
+          governateId: a.governateId || a.govId || 0,
+        }));
         this.loadingAreas = false;
-        console.log('📊 Loaded areas for governate', governateId, ':', areas);
+        console.log(
+          '📊 Loaded areas for governate',
+          governateId,
+          ':',
+          this.areas
+        );
 
         // Force change detection and update the dropdown
         this.ngZone.run(() => {
@@ -812,7 +822,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
   getAreaName(areaId: number): string {
     const area = this.areas.find((a) => a.id === areaId);
-    return area ? area.name : 'Unknown Area';
+    return area ? area.areaName : 'Unknown Area';
   }
 
   removeArea(areaId: number): void {
@@ -881,7 +891,7 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
     return item.id;
   }
 
-  trackByAreaId(index: number, item: Area): number {
+  trackByAreaId(index: number, item: AreaRep): number {
     return item.id;
   }
 
