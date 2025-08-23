@@ -210,48 +210,62 @@
                     </tr>
                   </tbody>
                 </table>
-              </div>
-
-              <!-- Pagination -->
-              <div
-                *ngIf="totalPages > 1"
-                class="d-flex justify-content-center mt-4"
-              >
-                <nav>
-                  <ul class="pagination">
-                    <li class="page-item" [class.disabled]="currentPage === 1">
-                      <a
-                        class="page-link"
-                        (click)="onPageChange(currentPage - 1)"
-                        style="cursor: pointer"
-                        >Previous</a
+                <!-- Pagination Controls: Always visible under the warehouse table -->
+                <!-- Warehouses Pagination (copied from pharmacies) -->
+                <div
+                  *ngIf="totalPages > 1 && !searchTerm"
+                  class="d-flex justify-content-center mt-3"
+                >
+                  <nav>
+                    <ul class="pagination">
+                      <li
+                        class="page-item"
+                        [class.disabled]="currentPage === 1"
                       >
-                    </li>
-                    <li
-                      class="page-item"
-                      *ngFor="let page of getPageNumbers()"
-                      [class.active]="page === currentPage"
-                    >
-                      <a
-                        class="page-link"
-                        (click)="onPageChange(page)"
-                        style="cursor: pointer"
-                        >{{ page }}</a
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(currentPage - 1)"
+                          style="cursor: pointer"
+                          >Previous</a
+                        >
+                      </li>
+                      <li
+                        class="page-item"
+                        *ngFor="let page of getPageNumbers()"
+                        [class.active]="page === currentPage"
                       >
-                    </li>
-                    <li
-                      class="page-item"
-                      [class.disabled]="currentPage === totalPages"
-                    >
-                      <a
-                        class="page-link"
-                        (click)="onPageChange(currentPage + 1)"
-                        style="cursor: pointer"
-                        >Next</a
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(page)"
+                          style="cursor: pointer"
+                          >{{ page }}</a
+                        >
+                      </li>
+                      <li
+                        class="page-item"
+                        [class.disabled]="currentPage === totalPages"
                       >
-                    </li>
-                  </ul>
-                </nav>
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(currentPage + 1)"
+                          style="cursor: pointer"
+                          >Next</a
+                        >
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+                <div class="text-center mt-2">
+                  <small class="text-muted" *ngIf="!searchTerm">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to
+                    {{ Math.min(currentPage * pageSize, totalCount) }} of
+                    {{ totalCount }} warehouses
+                  </small>
+                  <small class="text-muted" *ngIf="searchTerm">
+                    Search results: {{ filteredWarehouses.length }} warehouses
+                    found
+                  </small>
+                </div>
               </div>
 
               <!-- No Data Message -->

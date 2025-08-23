@@ -37,10 +37,36 @@ import jsPDF from 'jspdf';
 export class Warehouses implements OnInit, OnDestroy {
   // Search term for warehouse name
   warehouseSearchTerm: string = '';
+  searchTerm: string = '';
+  filteredWarehouses: Warehouse[] = [];
   warehouseImagePreview: string | ArrayBuffer | null = null;
   selectedWarehouseImageFile: File | null = null;
   // Warehouse list properties
   warehouses: Warehouse[] = [];
+  // Handler for warehouse search input (copied from pharmacies)
+  onSearch(): void {
+    if (!this.searchTerm.trim()) {
+      this.filteredWarehouses = [...this.warehouses];
+    } else {
+      const searchLower = this.searchTerm.toLowerCase().trim();
+      this.filteredWarehouses = this.warehouses.filter(
+        (warehouse) =>
+          (warehouse.name &&
+            warehouse.name.toLowerCase().includes(searchLower)) ||
+          (warehouse.address &&
+            warehouse.address.toLowerCase().includes(searchLower)) ||
+          (warehouse.governate &&
+            warehouse.governate.toLowerCase().includes(searchLower)) ||
+          (warehouse.phone &&
+            warehouse.phone.toLowerCase().includes(searchLower))
+      );
+    }
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.filteredWarehouses = [...this.warehouses];
+  }
   currentPage: number = 1;
   pageSize: number = 10;
   totalCount: number = 0;
@@ -152,7 +178,6 @@ export class Warehouses implements OnInit, OnDestroy {
     console.log('WarehousesComponent initialized');
     this.loadPharmacyGovernorates();
     this.loadWarehouses();
-    // Fix dropdown text display after a short delay (only in browser)
     if (typeof document !== 'undefined') {
       setTimeout(() => {
         this.fixDropdownTextDisplay();
@@ -479,8 +504,8 @@ export class Warehouses implements OnInit, OnDestroy {
     });
     this.loading = true;
 
-    // If using GetAll endpoint, always use page 1 since it doesn't support pagination
-    const pageToUse = this.isUsingGetAll ? 1 : this.currentPage;
+    // Always use currentPage for pagination, even for GetAllWithPagination
+    const pageToUse = this.currentPage;
 
     this.subscription = this.warehouseService
       .getWarehouses(
@@ -506,32 +531,18 @@ export class Warehouses implements OnInit, OnDestroy {
               this.warehouses.length,
               'items'
             );
-
-            if (this.isUsingGetAll) {
-              // For GetAll endpoint, set pagination to show all results
-              this.currentPage = 1;
-              this.totalCount = response.items?.length || 0;
-              this.totalPages = 1; // Only one page when using GetAll
-              console.log(
-                'Using GetAll - Total count:',
-                this.totalCount,
-                'Total pages:',
-                this.totalPages
-              );
-            } else {
-              // For area-specific endpoint, use normal pagination
-              this.currentPage = response.pageNumber || 1;
-              this.totalCount = response.totalCount || 0;
-              this.totalPages = response.totalPages || 0;
-              console.log(
-                'Using area-specific - Page:',
-                this.currentPage,
-                'Total count:',
-                this.totalCount,
-                'Total pages:',
-                this.totalPages
-              );
-            }
+            // Always set pagination state from API response
+            this.currentPage = response.pageNumber || 1;
+            this.totalCount = response.totalCount || 0;
+            this.totalPages = response.totalPages || 0;
+            console.log(
+              'API pagination - Page:',
+              this.currentPage,
+              'Total count:',
+              this.totalCount,
+              'Total pages:',
+              this.totalPages
+            );
 
             this.pageSize = response.pageSize || 10;
             this.loading = false;
@@ -550,12 +561,6 @@ export class Warehouses implements OnInit, OnDestroy {
   }
 
   onPageChange(page: number): void {
-    // Don't allow page changes when using GetAll endpoint (no pagination)
-    if (this.isUsingGetAll) {
-      console.log('Pagination not supported for GetAll endpoint');
-      return;
-    }
-
     this.currentPage = page;
     this.loadWarehouses();
   }

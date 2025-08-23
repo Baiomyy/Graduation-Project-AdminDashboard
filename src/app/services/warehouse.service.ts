@@ -21,6 +21,7 @@ export interface Warehouse {
   orders?: any[];
   wareHouseMedicines?: WareHouseMedicine[];
   password?: string; // Added password property
+  isActive?: boolean; // Soft delete property
 }
 
 export interface WareHouseArea {
@@ -196,8 +197,8 @@ export interface WarehouseCustomDetails {
 export class WarehouseService {
   // API URLs
   private baseUrl = '/api/warehouse';
-  private getAllUrl = `${this.baseUrl}/GetAll`;
-  private getByAreaUrl = `${this.baseUrl}/GetWarehousesByArea`;
+  private getAllUrl = `${this.baseUrl}/GellAllWithPagination`;
+  private getWarehousesByAreaUrl = `${this.baseUrl}/GetWarehousesByArea`;
   private createUrl = `${this.baseUrl}/CreateWareHouse`;
   private updateUrl = `${this.baseUrl}`;
   private deleteUrl = `${this.baseUrl}`;
@@ -229,27 +230,20 @@ export class WarehouseService {
 
     if (areaId && areaId > 0) {
       // Use area-specific endpoint when area is selected
-      url = `${this.getByAreaUrl}/${areaId}`;
+      url = `${this.getWarehousesByAreaUrl}/${areaId}`;
       console.log('Service: Using area-specific endpoint');
-
-      // Area-specific endpoint supports pagination
-      params = new HttpParams()
-        .set('page', pageNumber.toString())
-        .set('pageSize', pageSize.toString());
-
-      if (search) {
-        params = params.set('search', search);
-      }
     } else {
       // Use getAll endpoint when no specific area is selected
       url = this.getAllUrl;
       console.log('Service: Using getAll endpoint');
+    }
 
-      // GetAll endpoint doesn't support pagination, only search if provided
-      params = new HttpParams();
-      if (search) {
-        params = params.set('search', search);
-      }
+    // Always support pagination and search for both endpoints
+    params = new HttpParams()
+      .set('page', pageNumber.toString())
+      .set('pageSize', pageSize.toString());
+    if (search) {
+      params = params.set('search', search);
     }
 
     console.log('Service: Warehouse API URL:', url);
@@ -258,7 +252,14 @@ export class WarehouseService {
     return this.http.get<WarehouseResponse>(url, { params }).pipe(
       map((response) => {
         console.log('Warehouse API Response:', response);
-        return response;
+        // Filter warehouses to only those with IsActive === true
+        const filteredItems = (response.items || []).filter(
+          (w) => w.isActive === true
+        );
+        return {
+          ...response,
+          items: filteredItems,
+        };
       }),
       catchError((error) => {
         console.error('Error fetching warehouses from API:', error);
