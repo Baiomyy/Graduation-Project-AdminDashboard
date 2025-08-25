@@ -1,3 +1,4 @@
+import { Order } from './../../services/order.service';
 import {
   Component,
   OnInit,
@@ -26,6 +27,7 @@ import {
 } from '../../services/warehouse.service';
 import { Subscription } from 'rxjs';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-warehouses',
@@ -35,6 +37,15 @@ import jsPDF from 'jspdf';
   styleUrls: ['./warehouses.scss'],
 })
 export class Warehouses implements OnInit, OnDestroy {
+  public getInvoiceOrder(): WarehouseOrder | undefined {
+    return this.orders?.find(
+      (o: WarehouseOrder) => o.id === this.invoiceOrderId!
+    );
+  }
+  invoiceData: any[] = [];
+  showInvoiceModal: boolean = false;
+  invoiceOrderId: number | null = null;
+  invoiceError: string = '';
   // Search term for warehouse name
   warehouseSearchTerm: string = '';
   searchTerm: string = '';
@@ -115,8 +126,8 @@ export class Warehouses implements OnInit, OnDestroy {
   showAddForm: boolean = false;
   showEditForm: boolean = false;
   showMedicineForm: boolean = false;
-  warehouseForm: FormGroup;
-  medicineForm: FormGroup;
+  warehouseForm!: FormGroup;
+  medicineForm!: FormGroup;
   selectedMedicine: WarehouseMedicine | null = null;
 
   // Excel upload properties
@@ -147,7 +158,7 @@ export class Warehouses implements OnInit, OnDestroy {
   constructor(
     private warehouseService: WarehouseService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
+    private cd: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
     this.warehouseForm = this.fb.group({
@@ -195,7 +206,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.warehouseService.getAllGovernoratesPharmacyApi().subscribe({
       next: (governorates) => {
         this.pharmacyGovernorates = governorates;
-        this.cdr.detectChanges();
+        this.cd.detectChanges();
       },
       error: (error) => {
         console.error('Error loading pharmacy governorates:', error);
@@ -213,7 +224,7 @@ export class Warehouses implements OnInit, OnDestroy {
         .subscribe({
           next: (areas) => {
             this.pharmacyAreas = areas;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
             // Load warehouses after areas are loaded
             this.loadWarehouses();
           },
@@ -245,7 +256,7 @@ export class Warehouses implements OnInit, OnDestroy {
         .subscribe({
           next: (areas) => {
             this.pharmacyAreas = areas;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           },
           error: (error) => {
             console.error('Error loading pharmacy areas for form:', error);
@@ -304,7 +315,7 @@ export class Warehouses implements OnInit, OnDestroy {
         .subscribe({
           next: (areas) => {
             this.deliveryAreasByGovernorate[govId] = areas;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           },
           error: (error) => {
             console.error(
@@ -331,7 +342,7 @@ export class Warehouses implements OnInit, OnDestroy {
       delete this.deliveryAreasByGovernorate[govId];
     });
 
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Warehouse form area methods
@@ -352,7 +363,7 @@ export class Warehouses implements OnInit, OnDestroy {
       this.warehouseAreas = [];
       this.warehouseLocationAreas = [];
     }
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     // Fix dropdown text display after areas are loaded (only in browser)
     if (typeof document !== 'undefined') {
@@ -380,7 +391,7 @@ export class Warehouses implements OnInit, OnDestroy {
           (a) => a.areaId !== area.id
         );
     }
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   removeSelectedArea(areaId: number): void {
@@ -389,7 +400,7 @@ export class Warehouses implements OnInit, OnDestroy {
     );
     this.selectedWarehouseAreasWithPrice =
       this.selectedWarehouseAreasWithPrice.filter((a) => a.areaId !== areaId);
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   getAreaNameById(areaId: number): string {
@@ -443,11 +454,11 @@ export class Warehouses implements OnInit, OnDestroy {
 
     // Force change detection
     setTimeout(() => {
-      this.cdr.detectChanges();
+      this.cd.detectChanges();
     }, 0);
     // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
     setTimeout(() => {
-      this.cdr.detectChanges();
+      this.cd.detectChanges();
     }, 0);
   }
 
@@ -460,7 +471,7 @@ export class Warehouses implements OnInit, OnDestroy {
       this.selectedWarehouseAreasWithPrice.filter((a) => a.areaId !== areaId);
     // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
     setTimeout(() => {
-      this.cdr.detectChanges();
+      this.cd.detectChanges();
     }, 0);
   }
 
@@ -547,14 +558,14 @@ export class Warehouses implements OnInit, OnDestroy {
             this.pageSize = response.pageSize || 10;
             this.loading = false;
             console.log('Final warehouses array:', this.warehouses);
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
         error: (error) => {
           console.error('Error loading warehouses:', error);
           this.ngZone.run(() => {
             this.loading = false;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
       });
@@ -591,7 +602,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedWarehouseAreasWithPrice = [];
     this.selectedDeliveryGovernorateIds = [];
     this.deliveryAreasByGovernorate = {};
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     // Fix dropdown text display after form is shown (only in browser)
     if (typeof document !== 'undefined') {
@@ -663,7 +674,7 @@ export class Warehouses implements OnInit, OnDestroy {
             );
             // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
             setTimeout(() => {
-              this.cdr.detectChanges();
+              this.cd.detectChanges();
             }, 0);
           },
           error: (error) => {
@@ -700,7 +711,7 @@ export class Warehouses implements OnInit, OnDestroy {
             ) {
               this.selectedDeliveryGovernorateIds.push(gov.id);
             }
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           },
           error: (error) => {
             console.error(
@@ -712,7 +723,7 @@ export class Warehouses implements OnInit, OnDestroy {
         });
     });
 
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
     // Fix dropdown text display after form is shown (only in browser)
     if (typeof document !== 'undefined') {
       setTimeout(() => {
@@ -748,8 +759,8 @@ export class Warehouses implements OnInit, OnDestroy {
             this.showErrorMessage(
               'A warehouse with this email already exists. Please use a different email.'
             );
-            this.cdr.detectChanges();
-            this.cdr.markForCheck();
+            this.cd.detectChanges();
+            this.cd.markForCheck();
             console.log('Error modal should be shown');
             return;
           }
@@ -995,7 +1006,7 @@ export class Warehouses implements OnInit, OnDestroy {
             console.log('Adding new warehouse to local list:', newWarehouse);
             this.warehouses.unshift(newWarehouse); // Add to beginning of list
             this.totalCount++;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           }
 
           // Also refresh from server after a delay to ensure consistency
@@ -1055,7 +1066,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedDeliveryGovernorateIds = [];
     this.deliveryAreasByGovernorate = {};
     this.warehouseForm.reset();
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Warehouse Details
@@ -1068,20 +1079,20 @@ export class Warehouses implements OnInit, OnDestroy {
   loadWarehouseDetails(warehouseId: number): void {
     this.loadingDetails = true;
     this.warehouseDetails = null;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     this.warehouseService.getWarehouseCustomById(warehouseId).subscribe({
       next: (details) => {
         this.ngZone.run(() => {
           this.warehouseDetails = details;
           this.loadingDetails = false;
-          this.cdr.detectChanges();
+          this.cd.detectChanges();
         });
       },
       error: (error) => {
         console.error('Error loading warehouse details:', error);
         this.loadingDetails = false;
-        this.cdr.detectChanges();
+        this.cd.detectChanges();
       },
     });
   }
@@ -1090,7 +1101,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.showDetails = false;
     this.warehouseDetails = null;
     this.selectedWarehouseId = null;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Medicines Management
@@ -1105,7 +1116,7 @@ export class Warehouses implements OnInit, OnDestroy {
     console.log('Loading medicines for warehouse:', warehouseId);
     this.loadingMedicines = true;
     this.medicines = [];
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     this.warehouseService
       .getWarehouseMedicines(
@@ -1122,14 +1133,14 @@ export class Warehouses implements OnInit, OnDestroy {
             this.applyMedicinesFilters();
             this.loadingMedicines = false;
             console.log('Medicines array updated:', this.medicines);
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
         error: (error) => {
           console.error('Error loading warehouse medicines:', error);
           this.ngZone.run(() => {
             this.loadingMedicines = false;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
       });
@@ -1182,7 +1193,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedMedicine = null;
     this.showMedicineForm = true;
     this.medicineForm.reset();
-    this.cdr.detectChanges();
+  this.cd.detectChanges();
   }
 
   showEditMedicineForm(medicine: WarehouseMedicine): void {
@@ -1193,7 +1204,7 @@ export class Warehouses implements OnInit, OnDestroy {
       quantity: medicine.quantity,
       discount: medicine.discount,
     });
-    this.cdr.detectChanges();
+  this.cd.detectChanges();
   }
 
   onSubmitMedicine(): void {
@@ -1265,7 +1276,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedMedicine = null;
     this.showMedicineForm = false;
     this.medicineForm.reset();
-    this.cdr.detectChanges();
+  this.cd.detectChanges();
   }
   */
 
@@ -1273,7 +1284,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.showMedicines = false;
     this.medicines = [];
     this.selectedWarehouseId = null;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Orders Management
@@ -1292,36 +1303,174 @@ export class Warehouses implements OnInit, OnDestroy {
       this.warehouseImagePreview = null;
     }
   }
-  printOrderPdf(order: WarehouseOrder): void {
+
+  printOrderPdf(order: any): void {
+    if (!this.invoiceData || !this.invoiceOrderId) return;
+    console.log('Generating PDF for order:', order);
     const doc = new jsPDF();
-    let y = 10;
-    doc.setFontSize(16);
-    doc.text(`Order Details`, 10, y);
-    y += 10;
-    doc.setFontSize(12);
-    doc.text(`Order ID: #${order.id}`, 10, y);
-    y += 8;
-    doc.text(`Pharmacy: ${order.customerName}`, 10, y);
-    y += 8;
-    doc.text(`Order Date: ${this.formatDate(order.orderDate)}`, 10, y);
-    y += 8;
-    doc.text(`Total Price: ${order.totalAmount} EGP`, 10, y);
-    y += 8;
-    doc.text(`Status: ${order.status}`, 10, y);
-    y += 10;
-    doc.text(`Items:`, 10, y);
-    y += 8;
-    order.items.forEach((item: any, idx: number) => {
-      doc.text(
-        `${idx + 1}. ${item.medicineName} - Qty: ${item.quantity} - Price: ${
-          item.unitPrice
-        } EGP`,
-        12,
-        y
-      );
-      y += 8;
+
+    this.fetchFontAsBase64('assets/fonts/Amiri-Regular.ttf').then((base64) => {
+      (doc as any).addFileToVFS('Amiri-Regular.ttf', base64);
+      (doc as any).addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri');
+
+      // ✅ Add logo if exists
+      const img = new Image();
+      img.src = 'assets/img/logo.jpg';
+      img.onload = () => {
+        doc.addImage(img, 'JPG', 160, 10, 40, 30); // right side
+        addContent();
+      };
+
+      const addContent = () => {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        // draw line across the page
+        doc.setLineWidth(0.5); // thickness of line
+        doc.line(10, 40, pageWidth - 10, 40); // horizontal line
+        // ✅ Invoice Title
+        doc.setFontSize(18);
+        doc.text('Pharma At Once', 105, 30, { align: 'center' });
+        doc.text('فاتورة بيع', 105, 50, { align: 'center' });
+
+        // ✅ Customer Info
+        doc.setFontSize(12);
+        doc.text(`رقم الطلب: ${this.invoiceOrderId}`, 200, 70, {
+          align: 'right',
+        });
+        doc.text(`التاريخ: ${order.orderDate}`, 200, 80, { align: 'right' });
+        doc.text(`${this.invoiceData[0].wareHouseName} :مخزن`, 200, 90, {
+          align: 'right',
+        });
+        doc.text(`${order.customerName} :صيدلية`, 200, 100, { align: 'right' });
+        doc.line(10, 110, pageWidth - 10, 110); // horizontal line
+
+        // ✅ Table Headers + Body
+        autoTable(doc, {
+          head: [
+            [
+              'م',
+              'الصنف',
+              'الكمية المطلوبة',
+              'الكمية المصروفة',
+              'السعر (ج.م)',
+              'الخصم %',
+              'القيمة بعد الخصم',
+            ].reverse(),
+          ],
+          body: this.invoiceData.map((item: any, index: number) =>
+            [
+              index + 1,
+              item.arabicMedicineName,
+              item.quantity,
+              item.quantity, // or actual supplied qty
+              item.medicinePrice,
+              `${item.discountPercentage}%`,
+              item.totalPriceAfterDisccount,
+            ].reverse()
+          ),
+          startY: 120,
+          styles: { halign: 'right', font: 'Amiri', fontStyle: 'normal' },
+          headStyles: { fillColor: [200, 200, 200], halign: 'center' },
+          bodyStyles: {
+            cellPadding: { top: 2, right: 10, bottom: 2, left: 2 }, // reduce right padding a bit
+          },
+        });
+
+        // ✅ Totals under the table
+        let finalY = (doc as any).lastAutoTable.finalY + 20;
+
+        const totalBefore = this.invoiceData.reduce(
+          (sum: number, i: any) => sum + i.totalPriceBeforeDisccount,
+          0
+        );
+        const discount = this.invoiceData.reduce(
+          (sum: number, i: any) => sum + i.discountAmount,
+          0
+        );
+        const totalAfter = this.invoiceData.reduce(
+          (sum: number, i: any) => sum + i.totalPriceAfterDisccount,
+          0
+        );
+
+        doc.setFontSize(12);
+        doc.text(
+          `الإجمالي قبل الخصم: ${totalBefore.toFixed(2)} ج.م`,
+          200,
+          finalY,
+          { align: 'right' }
+        );
+        finalY += 10;
+        doc.text(`الخصم: ${discount.toFixed(2)} ج.م`, 200, finalY, {
+          align: 'right',
+        });
+        finalY += 10;
+        doc.line(200, finalY - 5, 130, finalY - 5);
+        doc.text(`الإجمالي الكلي: ${totalAfter.toFixed(2)} ج.م`, 200, finalY, {
+          align: 'right',
+        });
+
+        // ✅ Save file
+        doc.save(`invoice_order_${this.invoiceOrderId}.pdf`);
+      };
+
+      // If logo fails to load, still render
+      img.onerror = () => addContent();
     });
-    doc.save(`order_${order.id}.pdf`);
+  }
+  fetchFontAsBase64(url: string): Promise<string> {
+    return fetch(url)
+      .then((res) => res.arrayBuffer())
+      .then((buffer) => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, chunk as any);
+        }
+        return btoa(binary);
+      });
+  }
+
+  showInvoice(orderId: number): void {
+    this.invoiceOrderId = orderId;
+    this.showInvoiceModal = true;
+    this.invoiceData = [];
+    this.invoiceError = '';
+    this.warehouseService.getOrderDetailsForAdminDashboard(orderId).subscribe({
+      next: (response: any) => {
+        if (
+          response &&
+          Array.isArray(response.result) &&
+          response.result.length > 0
+        ) {
+          this.invoiceData = response.result;
+          this.invoiceError = '';
+        } else {
+          this.invoiceData = [];
+          this.invoiceError = 'No invoice data found for this order.';
+        }
+        console.log('invoiceData after fetch:', this.invoiceData);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error fetching invoice data:', err);
+        this.invoiceData = [];
+        if (err.status === 404) {
+          this.invoiceError = 'Invoice data not found for this order.';
+        } else {
+          this.invoiceError = 'An error occurred while fetching invoice data.';
+        }
+        this.cd.detectChanges();
+      },
+    });
+  }
+
+  closeInvoiceModal(): void {
+    this.showInvoiceModal = false;
+    this.invoiceOrderId = null;
+    this.invoiceData = [];
+    this.invoiceError = '';
   }
   onViewOrders(warehouseId: number): void {
     this.selectedWarehouseId = warehouseId;
@@ -1333,7 +1482,7 @@ export class Warehouses implements OnInit, OnDestroy {
   loadWarehouseOrders(warehouseId: number): void {
     this.loadingOrders = true;
     this.orders = [];
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     this.warehouseService
       .getWarehouseOrders(
@@ -1347,14 +1496,14 @@ export class Warehouses implements OnInit, OnDestroy {
             this.orders = response.items || [];
             this.ordersTotalCount = response.totalCount || 0;
             this.loadingOrders = false;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
         error: (error) => {
           console.error('Error loading warehouse orders:', error);
           this.ngZone.run(() => {
             this.loadingOrders = false;
-            this.cdr.detectChanges();
+            this.cd.detectChanges();
           });
         },
       });
@@ -1371,7 +1520,7 @@ export class Warehouses implements OnInit, OnDestroy {
     this.showOrders = false;
     this.orders = [];
     this.selectedWarehouseId = null;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Excel Upload
@@ -1394,7 +1543,7 @@ export class Warehouses implements OnInit, OnDestroy {
   uploadExcelFile(): void {
     if (this.selectedFile && this.selectedWarehouseId) {
       this.uploadingExcel = true;
-      this.cdr.detectChanges();
+      this.cd.detectChanges();
 
       this.warehouseService
         .uploadMedicinesExcel(this.selectedWarehouseId, this.selectedFile)
@@ -1411,7 +1560,7 @@ export class Warehouses implements OnInit, OnDestroy {
               } else {
                 alert('Error importing medicines: ' + result.message);
               }
-              this.cdr.detectChanges();
+              this.cd.detectChanges();
             });
           },
           error: (error) => {
@@ -1420,7 +1569,7 @@ export class Warehouses implements OnInit, OnDestroy {
               this.uploadingExcel = false;
               this.selectedFile = null;
               alert('Error uploading file. Please try again.');
-              this.cdr.detectChanges();
+              this.cd.detectChanges();
             });
           },
         });
@@ -1511,7 +1660,7 @@ export class Warehouses implements OnInit, OnDestroy {
   showSuccessMessage(message: string): void {
     this.successMessage = message;
     this.showSuccessModal = true;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     // Auto-dismiss after 2 seconds
     setTimeout(() => {
@@ -1523,7 +1672,7 @@ export class Warehouses implements OnInit, OnDestroy {
   showErrorMessage(message: string): void {
     this.errorMessage = message;
     this.showErrorModal = true;
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
 
     // Auto-dismiss after 2 seconds
     setTimeout(() => {
@@ -1535,13 +1684,13 @@ export class Warehouses implements OnInit, OnDestroy {
   closeSuccessModal(): void {
     this.showSuccessModal = false;
     this.successMessage = '';
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 
   // Close error modal
   closeErrorModal(): void {
     this.showErrorModal = false;
     this.errorMessage = '';
-    this.cdr.detectChanges();
+    this.cd.detectChanges();
   }
 }

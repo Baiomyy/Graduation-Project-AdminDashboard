@@ -195,6 +195,11 @@ export interface WarehouseCustomDetails {
   providedIn: 'root',
 })
 export class WarehouseService {
+  getOrderDetailsForAdminDashboard(orderId: number): Observable<any> {
+    return this.http.get<any>(
+      `/api/Order/getAllOrderDetailsForAdminDashboard/${orderId}`
+    );
+  }
   // API URLs
   private baseUrl = '/api/warehouse';
   private getAllUrl = `${this.baseUrl}/GellAllWithPagination`;

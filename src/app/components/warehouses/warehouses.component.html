@@ -1,3 +1,87 @@
+<!-- Invoice Modal -->
+<div
+  *ngIf="showInvoiceModal"
+  class="modal fade show"
+  style="display: block; z-index: 1070"
+  tabindex="-1"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="la la-file-invoice"></i>
+          Invoice for Order #{{ invoiceOrderId }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="closeInvoiceModal()"
+          style="
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: white;
+          "
+        >
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="invoiceError" class="alert alert-danger text-center my-4">
+          {{ invoiceError }}
+        </div>
+        <div
+          *ngIf="!invoiceError && (!invoiceData || invoiceData.length === 0)"
+          class="text-center py-4"
+        >
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading invoice data...</p>
+        </div>
+        <div *ngIf="!invoiceError && invoiceData && invoiceData.length > 0">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Medicine Name</th>
+                <th>Arabic Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Total Before Discount</th>
+                <th>Total After Discount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of invoiceData; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ item.medicineName }}</td>
+                <td>{{ item.arabicMedicineName }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.medicinePrice | currency : "EGP" }}</td>
+                <td>
+                  {{ item.discountAmount }} ({{ item.discountPercentage }}%)
+                </td>
+                <td>{{ item.totalPriceBeforeDisccount | currency : "EGP" }}</td>
+                <td>{{ item.totalPriceAfterDisccount | currency : "EGP" }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="d-flex justify-content-end mt-3">
+            <button
+              class="btn btn-primary"
+              *ngIf="getInvoiceOrder()"
+              (click)="printOrderPdf(getInvoiceOrder()!)"
+            >
+              <i class="la la-print"></i> Print PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="container-fluid">
   <!-- Header Section -->
   <div class="row">
@@ -1447,17 +1531,10 @@
                   <td>
                     <button
                       class="btn btn-sm btn-info"
-                      (click)="showOrderItems(order)"
-                      title="View Items"
+                      (click)="showInvoice(order.id)"
+                      title="View Invoice Items"
                     >
                       <i class="la la-list"></i> {{ order.items.length }} items
-                    </button>
-                    <button
-                      class="btn btn-sm btn-primary ms-2"
-                      (click)="printOrderPdf(order)"
-                      title="Print Order PDF"
-                    >
-                      <i class="la la-print"></i> Print PDF
                     </button>
                   </td>
                 </tr>
