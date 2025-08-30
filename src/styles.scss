@@ -1,0 +1,124 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Line Awesome Font Loading */
+@font-face {
+  font-family: "LineAwesome";
+  src: url("assets/fonts/line-awesomeeb4f.eot?v=1.1.");
+  src: url("assets/fonts/line-awesome0176.eot??v=1.1.#iefix")
+      format("embedded-opentype"),
+    url("assets/fonts/line-awesomeeb4f.woff2?v=1.1.") format("woff2"),
+    url("assets/fonts/line-awesomeeb4f.woff?v=1.1.") format("woff"),
+    url("assets/fonts/line-awesomeeb4f.ttf?v=1.1.") format("truetype"),
+    url("assets/fonts/line-awesomeeb4f.svg?v=1.1.#fa") format("svg");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  @font-face {
+    font-family: "LineAwesome";
+    src: url("assets/fonts/line-awesomeeb4f.svg?v=1.1.#fa") format("svg");
+  }
+}
+
+/* Fix for -ms-high-contrast deprecation warnings */
+@media (forced-colors: active) {
+  /* Use forced-colors instead of -ms-high-contrast */
+  .btn,
+  .form-control,
+  .table,
+  .card {
+    forced-color-adjust: none;
+  }
+}
+
+/* Global styles for better UX */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table {
+  background-color: white;
+}
+
+/* Loading spinner styles */
+.spinner-border {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: text-bottom;
+  border: 0.25em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pagination improvements */
+.pagination .page-link {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pagination .page-item.disabled .page-link {
+  cursor: not-allowed;
+}
+
+/* Line Awesome Icon Fixes */
+.la {
+  display: inline-block !important;
+  font: normal normal normal 16px/1 LineAwesome !important;
+  font-size: inherit !important;
+  text-decoration: inherit !important;
+  text-rendering: optimizeLegibility !important;
+  text-transform: none !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-smoothing: antialiased !important;
+}
+
+.la:before {
+  display: inline-block !important;
+}
+
+/* Ensure icon containers show icons properly */
+.icon-container .la {
+  font-size: 24px !important;
+  color: #ffffff !important;
+}
+
+/* Debug styles - remove these after confirming icons work */
+.icon-container {
+  position: relative;
+}
+
+.icon-container:after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}

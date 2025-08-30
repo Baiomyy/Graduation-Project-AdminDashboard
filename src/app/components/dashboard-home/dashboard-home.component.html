@@ -1,0 +1,161 @@
+<div class="content">
+  <div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="page-header">
+          <h2 class="page-title">
+            <i class="la la-dashboard"></i> Dashboard Overview
+          </h2>
+          <p class="text-muted">Welcome to your Pharmacy Management System</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="row">
+      <div class="col-12">
+        <div class="card loading-card">
+          <div class="card-body text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <h5 class="text-muted">Loading dashboard data...</h5>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Cards -->
+    <div *ngIf="!loading" class="row">
+      <!-- Pharmacies Card -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card dashboard-card pharmacy-card h-100">
+          <div class="card-body">
+            <div class="card-header-section">
+              <div class="icon-container pharmacy-icon">
+                <i class="la la-hospital-o"></i>
+              </div>
+              <div>
+                <h6 class="card-subtitle text-muted mb-1">Total Pharmacies</h6>
+                <h3 class="card-title mb-0">{{ pharmacyCount }}</h3>
+              </div>
+            </div>
+            <div class="progress mb-3" style="height: 6px">
+              <div
+                class="progress-bar pharmacy-progress"
+                role="progressbar"
+                [style.width.%]="getProgressPercentage(pharmacyCount)"
+                aria-valuenow="pharmacyCount"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            </div>
+            <p class="card-text small text-muted mb-0">
+              <i class="la la-bar-chart"></i> Active pharmacy locations
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warehouses Card -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card dashboard-card warehouse-card h-100">
+          <div class="card-body">
+            <div class="card-header-section">
+              <div class="icon-container warehouse-icon">
+                <i class="la la-building-o"></i>
+              </div>
+              <div>
+                <h6 class="card-subtitle text-muted mb-1">Total Warehouses</h6>
+                <h3 class="card-title mb-0">{{ warehouseCount }}</h3>
+              </div>
+            </div>
+            <div class="progress mb-3" style="height: 6px">
+              <div
+                class="progress-bar warehouse-progress"
+                role="progressbar"
+                [style.width.%]="getProgressPercentage(warehouseCount)"
+                aria-valuenow="warehouseCount"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            </div>
+            <p class="card-text small text-muted mb-0">
+              <i class="la la-bar-chart"></i> Distribution centers
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Representatives Card -->
+      <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card dashboard-card representative-card h-100">
+          <div class="card-body">
+            <div class="card-header-section">
+              <div class="icon-container representative-icon">
+                <i class="la la-user"></i>
+              </div>
+              <div>
+                <h6 class="card-subtitle text-muted mb-1">
+                  Total Representatives
+                </h6>
+                <h3 class="card-title mb-0">{{ representativeCount }}</h3>
+              </div>
+            </div>
+            <div class="progress mb-3" style="height: 6px">
+              <div
+                class="progress-bar representative-progress"
+                role="progressbar"
+                [style.width.%]="getProgressPercentage(representativeCount)"
+                aria-valuenow="representativeCount"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            </div>
+            <p class="card-text small text-muted mb-0">
+              <i class="la la-bar-chart"></i> Active representatives
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <!-- <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="la la-bar-chart"></i> System Overview
+            </h5>
+            <div class="row text-center">
+              <div class="col-md-3 col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-number text-primary">{{ pharmacyCount }}</div>
+                  <div class="stat-label">Pharmacies</div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-number text-success">{{ warehouseCount }}</div>
+                  <div class="stat-label">Warehouses</div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-number text-warning">{{ representativeCount }}</div>
+                  <div class="stat-label">Representatives</div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-number text-info">{{ pharmacyCount + warehouseCount + representativeCount }}</div>
+                  <div class="stat-label">Total Entities</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> -->
+  </div>
+</div>

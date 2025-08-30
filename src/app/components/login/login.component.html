@@ -1,0 +1,28 @@
+<div class="container" style="max-width: 420px; margin-top: 80px;">
+  <div class="card">
+    <div class="card-body">
+      <h4 class="card-title mb-3 text-center">Admin Login</h4>
+
+      <form (ngSubmit)="onSubmit()">
+        <div class="form-group mb-3">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" class="form-control" [(ngModel)]="email" placeholder="Enter email" required />
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" class="form-control" [(ngModel)]="password" placeholder="Enter password" required />
+        </div>
+
+        <div *ngIf="errorMessage" class="alert alert-danger py-2" role="alert">{{ errorMessage }}</div>
+
+        <button class="btn btn-primary btn-block w-100" type="submit" [disabled]="loading">
+          <span *ngIf="!loading">Login</span>
+          <span *ngIf="loading">Logging in...</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+

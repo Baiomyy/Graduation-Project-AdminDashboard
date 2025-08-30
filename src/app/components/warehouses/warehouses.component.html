@@ -1,0 +1,1736 @@
+<!-- Invoice Modal -->
+<div
+  *ngIf="showInvoiceModal"
+  class="modal fade show"
+  style="display: block; z-index: 1070"
+  tabindex="-1"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="la la-file-invoice"></i>
+          Invoice for Order #{{ invoiceOrderId }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          (click)="closeInvoiceModal()"
+          style="
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: white;
+          "
+        >
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="invoiceError" class="alert alert-danger text-center my-4">
+          {{ invoiceError }}
+        </div>
+        <div
+          *ngIf="!invoiceError && (!invoiceData || invoiceData.length === 0)"
+          class="text-center py-4"
+        >
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading invoice data...</p>
+        </div>
+        <div *ngIf="!invoiceError && invoiceData && invoiceData.length > 0">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Medicine Name</th>
+                <th>Arabic Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Total Before Discount</th>
+                <th>Total After Discount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of invoiceData; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ item.medicineName }}</td>
+                <td>{{ item.arabicMedicineName }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.medicinePrice | currency : "EGP" }}</td>
+                <td>
+                  {{ item.discountAmount }} ({{ item.discountPercentage }}%)
+                </td>
+                <td>{{ item.totalPriceBeforeDisccount | currency : "EGP" }}</td>
+                <td>{{ item.totalPriceAfterDisccount | currency : "EGP" }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="d-flex justify-content-end mt-3">
+            <button
+              class="btn btn-primary"
+              *ngIf="getInvoiceOrder()"
+              (click)="printOrderPdf(getInvoiceOrder()!)"
+            >
+              <i class="la la-print"></i> Print PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container-fluid">
+  <!-- Header Section -->
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">
+            <i class="la la-building text-black"></i>
+            Warehouse Management
+          </h4>
+          <p class="card-category text-black">
+            Manage warehouse inventory, locations, and operations
+          </p>
+        </div>
+        <div class="card-body">
+          <!-- Filters Section -->
+          <div class="row mb-4">
+            <!-- New Pharmacy API Governorate Dropdown -->
+            <div class="col-md-3">
+              <label for="pharmacyGovernorateFilter" class="form-label"
+                >Governorate</label
+              >
+              <select
+                id="pharmacyGovernorateFilter"
+                class="form-control"
+                [(ngModel)]="selectedPharmacyGovernorateId"
+                (change)="onPharmacyGovernorateChange()"
+              >
+                <option [ngValue]="null">All Governorates</option>
+                <option
+                  *ngFor="let gov of pharmacyGovernorates"
+                  [ngValue]="gov.id"
+                >
+                  {{ gov.name }}
+                </option>
+              </select>
+            </div>
+            <!-- New Pharmacy API Area Dropdown -->
+            <div class="col-md-3">
+              <label for="pharmacyAreaFilter" class="form-label">Area</label>
+              <select
+                id="pharmacyAreaFilter"
+                class="form-control"
+                [(ngModel)]="selectedPharmacyAreaId"
+                (change)="onPharmacyAreaChange()"
+                [disabled]="
+                  selectedPharmacyGovernorateId === null ||
+                  selectedPharmacyGovernorateId === undefined
+                "
+              >
+                <option [ngValue]="null">All Areas</option>
+                <option *ngFor="let area of pharmacyAreas" [ngValue]="area.id">
+                  {{ area.name }}
+                </option>
+              </select>
+            </div>
+            <!-- Old dropdowns (commented for reference) -->
+            <!--
+            <div class="col-md-3">
+              <label for="governorateFilter" class="form-label">Governorate</label>
+              <select
+                id="governorateFilter"
+                class="form-control"
+                [(ngModel)]="selectedGovernorate"
+                (change)="onGovernorateChange()"
+              >
+                <option value="">All Governorates</option>
+                <option *ngFor="let gov of governorates" [value]="gov.name">
+                  {{ gov.name }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="areaFilter" class="form-label">Area</label>
+              <select
+                id="areaFilter"
+                class="form-control"
+                [(ngModel)]="selectedArea"
+                (change)="onAreaChange()"
+              >
+                <option value="">All Areas</option>
+                <option *ngFor="let area of areas" [value]="area.name">
+                  {{ area.name }}
+                </option>
+              </select>
+            </div>
+            -->
+            <div class="col-md-3">
+              <label for="warehouseSearchInput" class="form-label"
+                >Search by Name</label
+              >
+              <input
+                id="warehouseSearchInput"
+                type="text"
+                class="form-control"
+                placeholder="Enter warehouse name..."
+                [(ngModel)]="warehouseSearchTerm"
+                (ngModelChange)="onWarehouseSearchChange()"
+              />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-primary" (click)="showAddWarehouseForm()">
+                <i class="la la-plus"></i> Add New Warehouse
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div *ngIf="loading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading warehouses...</p>
+          </div>
+
+          <!-- Warehouses List -->
+          <div *ngIf="!loading" class="row">
+            <div class="col-md-12">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Name</th>
+                      <th>Address</th>
+                      <th>Governorate</th>
+                      <th>Contact</th>
+                      <th style="width: 100px; min-width: 100px">
+                        Trust Status
+                      </th>
+                      <th style="min-width: 340px; width: 340px">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="let warehouse of warehouses"
+                      class="warehouse-row"
+                      (click)="onWarehouseClick(warehouse.id)"
+                    >
+                      <td>
+                        <strong>{{ warehouse.name }}</strong>
+                      </td>
+                      <td>{{ warehouse.address }}</td>
+                      <td>{{ warehouse.governate }}</td>
+                      <td>
+                        <div>{{ warehouse.phone || "N/A" }}</div>
+                        <small class="text-muted">{{
+                          warehouse.email || "N/A"
+                        }}</small>
+                      </td>
+                      <td>
+                        <span
+                          class="badge badge-{{
+                            warehouse.isTrusted ? 'success' : 'warning'
+                          }}"
+                        >
+                          {{ warehouse.isTrusted ? "Trusted" : "Not Trusted" }}
+                        </span>
+                      </td>
+                      <td style="min-width: 340px; width: 340px">
+                        <div
+                          class="btn-group d-flex flex-wrap gap-2"
+                          role="group"
+                        >
+                          <button
+                            class="btn btn-sm btn-info d-flex align-items-center gap-1"
+                            (click)="
+                              $event.stopPropagation();
+                              onViewMedicines(warehouse.id)
+                            "
+                            title="View Medicines"
+                          >
+                            <i class="la la-pills"></i>
+                            <span>Medicines</span>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-warning d-flex align-items-center gap-1"
+                            (click)="
+                              $event.stopPropagation();
+                              onViewOrders(warehouse.id)
+                            "
+                            title="View Orders"
+                          >
+                            <i class="la la-shopping-cart"></i>
+                            <span>Orders</span>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                            (click)="
+                              $event.stopPropagation();
+                              showEditWarehouseForm(warehouse)
+                            "
+                            title="Edit"
+                          >
+                            <i class="la la-edit"></i>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-danger d-flex align-items-center gap-1"
+                            (click)="
+                              $event.stopPropagation();
+                              deleteWarehouse(warehouse.id)
+                            "
+                            title="Delete"
+                          >
+                            <i class="la la-trash"></i>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <!-- Pagination Controls: Always visible under the warehouse table -->
+                <!-- Warehouses Pagination (copied from pharmacies) -->
+                <div
+                  *ngIf="totalPages > 1 && !searchTerm"
+                  class="d-flex justify-content-center mt-3"
+                >
+                  <nav>
+                    <ul class="pagination">
+                      <li
+                        class="page-item"
+                        [class.disabled]="currentPage === 1"
+                      >
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(currentPage - 1)"
+                          style="cursor: pointer"
+                          >Previous</a
+                        >
+                      </li>
+                      <li
+                        class="page-item"
+                        *ngFor="let page of getPageNumbers()"
+                        [class.active]="page === currentPage"
+                      >
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(page)"
+                          style="cursor: pointer"
+                          >{{ page }}</a
+                        >
+                      </li>
+                      <li
+                        class="page-item"
+                        [class.disabled]="currentPage === totalPages"
+                      >
+                        <a
+                          class="page-link"
+                          (click)="onPageChange(currentPage + 1)"
+                          style="cursor: pointer"
+                          >Next</a
+                        >
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+                <div class="text-center mt-2">
+                  <small class="text-muted" *ngIf="!searchTerm">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to
+                    {{ Math.min(currentPage * pageSize, totalCount) }} of
+                    {{ totalCount }} warehouses
+                  </small>
+                  <small class="text-muted" *ngIf="searchTerm">
+                    Search results: {{ filteredWarehouses.length }} warehouses
+                    found
+                  </small>
+                </div>
+              </div>
+
+              <!-- No Data Message -->
+              <div
+                *ngIf="warehouses.length === 0 && !loading"
+                class="text-center py-4"
+              >
+                <i
+                  class="la la-building"
+                  style="font-size: 3rem; color: #ccc"
+                ></i>
+                <p class="mt-2 text-muted">No warehouses found</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warehouse Details Modal -->
+  <div
+    *ngIf="showDetails"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="la la-building"></i>
+            Warehouse Details
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeDetails()"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: white;
+            "
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div *ngIf="loadingDetails" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading warehouse details...</p>
+          </div>
+
+          <div *ngIf="warehouseDetails && !loadingDetails">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <table class="table table-borderless">
+                  <tr>
+                    <td><strong>Name:</strong></td>
+                    <td>{{ warehouseDetails.name }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Address:</strong></td>
+                    <td>{{ warehouseDetails.address }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Governorate:</strong></td>
+                    <td>{{ warehouseDetails.governate }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Trust Status:</strong></td>
+                    <td>
+                      <span
+                        class="badge badge-{{
+                          warehouseDetails.isTrusted ? 'success' : 'warning'
+                        }}"
+                      >
+                        {{
+                          warehouseDetails.isTrusted ? "Trusted" : "Not Trusted"
+                        }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Areas:</strong></td>
+                    <td>
+                      <span
+                        *ngFor="
+                          let area of warehouseDetails.areaNames;
+                          let last = last
+                        "
+                      >
+                        {{ area }}<span *ngIf="!last">, </span>
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Orders:</strong></td>
+                    <td>{{ warehouseDetails.totalOrders }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Total Medicines:</strong></td>
+                    <td>{{ warehouseDetails.totalMedicines }}</td>
+                  </tr>
+                </table>
+              </div>
+              <div class="col-md-6">
+                <h6>Contact Information</h6>
+                <table class="table table-borderless">
+                  <tr>
+                    <td><strong>Phone:</strong></td>
+                    <td>{{ warehouseDetails.phone || "N/A" }}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Email:</strong></td>
+                    <td>{{ warehouseDetails.email || "N/A" }}</td>
+                  </tr>
+                  <tr *ngIf="warehouseDetails.imageUrl">
+                    <td><strong>Image:</strong></td>
+                    <td>
+                      <img
+                        [src]="warehouseDetails.imageUrl"
+                        alt="Warehouse Image"
+                        style="max-width: 100px; max-height: 100px"
+                      />
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <div class="card bg-primary text-white">
+                  <div class="card-body text-center">
+                    <i class="la la-pills" style="font-size: 2rem"></i>
+                    <h4>{{ warehouseDetails.totalMedicines }}</h4>
+                    <p>Total Medicines</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card bg-success text-white">
+                  <div class="card-body text-center">
+                    <i class="la la-shopping-cart" style="font-size: 2rem"></i>
+                    <h4>{{ warehouseDetails.totalOrders }}</h4>
+                    <p>Total Orders</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Warehouse Modal -->
+  <div
+    *ngIf="showAddForm || showEditForm"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="la la-{{ showEditForm ? 'edit' : 'plus' }}"></i>
+            {{ showEditForm ? "Edit" : "Add" }} Warehouse
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeWarehouseForm()"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: white;
+            "
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="warehouseForm" (ngSubmit)="onSubmitWarehouse()">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="name" class="form-label">Name *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="name"
+                    formControlName="name"
+                    required
+                  />
+                  <div
+                    *ngIf="
+                      warehouseForm.get('name')?.invalid &&
+                      warehouseForm.get('name')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Name is required
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="phone" class="form-label">Phone Number *</label>
+                  <input
+                    type="tel"
+                    class="form-control"
+                    id="phone"
+                    formControlName="phone"
+                    required
+                  />
+                  <div
+                    *ngIf="
+                      warehouseForm.get('phone')?.invalid &&
+                      warehouseForm.get('phone')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Phone number is required
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">Email *</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                formControlName="email"
+                required
+              />
+              <div
+                *ngIf="
+                  warehouseForm.get('email')?.invalid &&
+                  warehouseForm.get('email')?.touched
+                "
+                class="text-danger"
+              >
+                Please enter a valid email address
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password *</label>
+              <input
+                type="text"
+                class="form-control"
+                id="password"
+                formControlName="password"
+                required
+              />
+              <div
+                *ngIf="
+                  warehouseForm.get('password')?.invalid &&
+                  warehouseForm.get('password')?.touched
+                "
+                class="text-danger"
+              >
+                Password is required
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="address" class="form-label">Address *</label>
+              <textarea
+                class="form-control"
+                id="address"
+                formControlName="address"
+                rows="3"
+                required
+              ></textarea>
+              <div
+                *ngIf="
+                  warehouseForm.get('address')?.invalid &&
+                  warehouseForm.get('address')?.touched
+                "
+                class="text-danger"
+              >
+                Address is required
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="pharmacyFormGovernorate" class="form-label"
+                    >Governorate *</label
+                  >
+                  <select
+                    class="form-control"
+                    id="pharmacyFormGovernorate"
+                    formControlName="governate"
+                    (change)="onPharmacyFormGovernorateChange()"
+                    required
+                  >
+                    <option [ngValue]="null">Select Governorate</option>
+                    <option
+                      *ngFor="let gov of pharmacyGovernorates"
+                      [ngValue]="gov.id"
+                    >
+                      {{ gov.name }}
+                    </option>
+                  </select>
+                  <div
+                    *ngIf="
+                      warehouseForm.get('governate')?.invalid &&
+                      warehouseForm.get('governate')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Governorate is required
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="pharmacyFormArea" class="form-label"
+                    >Warehouse Location Area *</label
+                  >
+                  <select
+                    class="form-control"
+                    id="pharmacyFormArea"
+                    formControlName="warehouseLocationArea"
+                    required
+                  >
+                    <option [ngValue]="null">Select Area</option>
+                    <option
+                      *ngFor="let area of pharmacyAreas"
+                      [ngValue]="area.id"
+                    >
+                      {{ area.name }}
+                    </option>
+                  </select>
+                  <div
+                    *ngIf="
+                      warehouseForm.get('warehouseLocationArea')?.invalid &&
+                      warehouseForm.get('warehouseLocationArea')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Warehouse location area is required
+                  </div>
+                </div>
+              </div>
+              <!-- Old dropdowns (commented for reference) -->
+              <!--
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="governate" class="form-label">Governorate *</label>
+                  <select
+                    class="form-control"
+                    id="governate"
+                    formControlName="governate"
+                    (change)="onWarehouseGovernorateChange()"
+                    required
+                  >
+                    <option value="">Select Governorate</option>
+                    <option *ngFor="let gov of governorates" [value]="gov.name">
+                      {{ gov.name }}
+                    </option>
+                  </select>
+                  <div
+                    *ngIf="warehouseForm.get('governate')?.invalid && warehouseForm.get('governate')?.touched"
+                    class="text-danger"
+                  >
+                    Governorate is required
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="warehouseLocationArea" class="form-label">Warehouse Location Area *</label>
+                  <select
+                    class="form-control"
+                    id="warehouseLocationArea"
+                    formControlName="warehouseLocationArea"
+                    required
+                  >
+                    <option value="">Select Area</option>
+                    <option *ngFor="let area of warehouseLocationAreas" [value]="area.name">
+                      {{ area.name }}
+                    </option>
+                  </select>
+                  <div
+                    *ngIf="warehouseForm.get('warehouseLocationArea')?.invalid && warehouseForm.get('warehouseLocationArea')?.touched"
+                    class="text-danger"
+                  >
+                    Warehouse location area is required
+                  </div>
+                </div>
+              </div>
+              -->
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label for="imageUrl" class="form-label"
+                  >Warehouse Image</label
+                  >
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="warehouseImage"
+                    (change)="onWarehouseImageSelected($event)"
+                    accept="image/*"
+                  />
+                  <div *ngIf="warehouseImagePreview" class="mt-2">
+                    <img
+                      [src]="warehouseImagePreview"
+                      alt="Preview"
+                      style="max-width: 100%; max-height: 200px"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Delivery Areas Section -->
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label class="form-label">Delivery Areas *</label>
+                  <div class="alert alert-info">
+                    <i class="la la-info-circle"></i>
+                    Select the areas where this warehouse can deliver to (these
+                    are different from the warehouse location area above).
+                    <strong>At least one delivery area is required.</strong>
+                  </div>
+                  <!-- Multi-select for delivery governorates -->
+                  <div class="mb-3">
+                    <label class="form-label">Delivery Governorates</label>
+                    <div
+                      class="border rounded p-2"
+                      style="max-height: 220px; overflow-y: auto"
+                    >
+                      <div
+                        class="form-check"
+                        *ngFor="let gov of pharmacyGovernorates"
+                      >
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          [id]="'gov-' + gov.id"
+                          [checked]="
+                            selectedDeliveryGovernorateIds.includes(gov.id)
+                          "
+                          (change)="onToggleDeliveryGovernorate(gov.id, $event)"
+                        />
+                        <label class="form-check-label" [for]="'gov-' + gov.id">
+                          {{ gov.name }}
+                        </label>
+                      </div>
+                      <div
+                        *ngIf="pharmacyGovernorates.length === 0"
+                        class="text-muted"
+                      >
+                        No governorates available.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div
+                        *ngIf="selectedDeliveryGovernorateIds.length === 0"
+                        class="text-muted"
+                      >
+                        Select one or more delivery governorates to view areas
+                      </div>
+                      <ng-container
+                        *ngFor="let govId of selectedDeliveryGovernorateIds"
+                      >
+                        <div class="card mb-3">
+                          <div class="card-header">
+                            <h6 class="mb-0">
+                              Available Areas —
+                              {{ getGovernorateNameById(govId) }}
+                            </h6>
+                          </div>
+                          <div
+                            class="card-body"
+                            style="max-height: 200px; overflow-y: auto"
+                          >
+                            <div
+                              *ngFor="
+                                let area of deliveryAreasByGovernorate[govId]
+                              "
+                              class="form-check"
+                            >
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                [id]="'area-' + area.id"
+                                [value]="area.id"
+                                (change)="
+                                  onPharmacyAreaSelectionChange(area, $event)
+                                "
+                                [checked]="
+                                  selectedWarehouseAreas.includes(area.id)
+                                "
+                              />
+                              <label
+                                class="form-check-label"
+                                [for]="'area-' + area.id"
+                              >
+                                {{ area.name }}
+                              </label>
+                            </div>
+                            <div
+                              *ngIf="
+                                (deliveryAreasByGovernorate[govId] || [])
+                                  .length === 0
+                              "
+                              class="text-muted"
+                            >
+                              No areas available for this governorate
+                            </div>
+                          </div>
+                        </div>
+                      </ng-container>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="card">
+                        <div class="card-header">
+                          <h6 class="mb-0">Selected Areas</h6>
+                        </div>
+                        <div
+                          class="card-body"
+                          style="max-height: 200px; overflow-y: auto"
+                        >
+                          <div
+                            *ngFor="
+                              let areaObj of selectedWarehouseAreasWithPrice
+                            "
+                            class="mb-2"
+                          >
+                            <span class="badge badge-primary me-2">
+                              {{ getPharmacyAreaNameById(areaObj.areaId) }}
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              class="form-control d-inline-block"
+                              style="width: 120px"
+                              [ngModel]="areaObj.minmumPrice"
+                              (ngModelChange)="areaObj.minmumPrice = $event"
+                              [ngModelOptions]="{ standalone: true }"
+                              placeholder="Min Price"
+                            />
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="
+                                removeSelectedPharmacyArea(areaObj.areaId)
+                              "
+                            >
+                              <i class="la la-times"></i>
+                            </button>
+                          </div>
+                          <div
+                            *ngIf="selectedWarehouseAreas.length === 0"
+                            class="text-danger"
+                          >
+                            <i class="la la-exclamation-triangle"></i>
+                            No areas selected. Please select at least one
+                            delivery area.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    *ngIf="
+                      selectedWarehouseAreas.length === 0 &&
+                      warehouseForm.get('governate')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Please select at least one delivery area
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Trusted Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isTrusted')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isTrusted')
+                        ?.setValue(!warehouseForm.get('isTrusted')?.value)
+                    "
+                  >
+                    {{ warehouseForm.get("isTrusted")?.value ? "Yes" : "No" }}
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3 d-flex align-items-center">
+                  <label class="form-label mb-0" style="margin-right: 2rem"
+                    >Approved Warehouse</label
+                  >
+                  <button
+                    type="button"
+                    class="btn"
+                    [ngClass]="
+                      warehouseForm.get('isWarehouseApproved')?.value
+                        ? 'btn-success'
+                        : 'btn-outline-secondary'
+                    "
+                    (click)="
+                      warehouseForm
+                        .get('isWarehouseApproved')
+                        ?.setValue(
+                          !warehouseForm.get('isWarehouseApproved')?.value
+                        )
+                    "
+                  >
+                    {{
+                      warehouseForm.get("isWarehouseApproved")?.value
+                        ? "Yes"
+                        : "No"
+                    }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="closeWarehouseForm()"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="warehouseForm.invalid"
+              >
+                {{ showEditForm ? "Update" : "Create" }} Warehouse
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medicines Modal -->
+  <div
+    *ngIf="showMedicines"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="la la-pills"></i>
+            Warehouse Medicines
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeMedicines()"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: white;
+            "
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Excel Upload Section -->
+          <div class="row mb-4">
+            <div class="col-md-8">
+              <div class="input-group">
+                <input
+                  type="file"
+                  class="form-control"
+                  accept=".xlsx,.csv"
+                  (change)="onFileSelected($event)"
+                />
+                <button
+                  class="btn btn-success"
+                  (click)="uploadExcelFile()"
+                  [disabled]="!selectedFile || uploadingExcel"
+                >
+                  <i class="la la-upload"></i>
+                  {{ uploadingExcel ? "Uploading..." : "Upload Excel" }}
+                </button>
+              </div>
+              <small class="text-muted"
+                >Upload Excel file (.xlsx) or CSV file (.csv) with medicines
+                data. This is the only way to add medicines to
+                warehouses.</small
+              >
+            </div>
+            <!-- Add Medicine Button - Commented out as Excel upload is the only method
+            <div class="col-md-4 text-end">
+              <button class="btn btn-primary" (click)="showAddMedicineForm()">
+                <i class="la la-plus"></i> Add Medicine
+              </button>
+            </div>
+            -->
+          </div>
+
+          <!-- Search and Filter Controls -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Search by English or Arabic name..."
+                [(ngModel)]="medicinesSearchTerm"
+                (ngModelChange)="onMedicinesSearchChange()"
+              />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label mb-2">Filter by Type:</label>
+              <div class="btn-group" role="group" aria-label="Drug type filter">
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === ''
+                      ? 'btn-primary'
+                      : 'btn-outline-primary'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-list"></i>
+                  All Types
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === '0'
+                      ? 'btn-success'
+                      : 'btn-outline-success'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '0';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-spa"></i>
+                  Cosmetic
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class]="
+                    medicinesDrugTypeFilter === '1'
+                      ? 'btn-info'
+                      : 'btn-outline-info'
+                  "
+                  (click)="
+                    medicinesDrugTypeFilter = '1';
+                    onMedicinesDrugTypeFilterChange()
+                  "
+                >
+                  <i class="la la-pills"></i>
+                  Drug
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading Spinner (moved below search/filter) -->
+          <div *ngIf="loadingMedicines" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading medicines...</p>
+          </div>
+
+          <!-- Medicines Table -->
+          <div
+            *ngIf="!loadingMedicines && medicines.length > 0"
+            class="table-responsive"
+          >
+            <table class="table table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Medicine Name</th>
+                  <th>Arabic Name</th>
+                  <th>Description</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Discount</th>
+                  <th>Final Price</th>
+                  <th>Drug Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let medicine of filteredMedicines">
+                  <td>
+                    <strong>{{ medicine.medicine.name || "N/A" }}</strong>
+                  </td>
+                  <td>{{ medicine.medicine.arabicName || "N/A" }}</td>
+                  <td>{{ medicine.medicine.description || "N/A" }}</td>
+                  <td>
+                    <span
+                      class="badge badge-{{
+                        medicine.quantity > 0 ? 'success' : 'danger'
+                      }}"
+                    >
+                      {{ medicine.quantity }}
+                    </span>
+                  </td>
+                  <td>
+                    {{
+                      medicine.medicine.price
+                        ? (medicine.medicine.price | currency : "EGP")
+                        : "N/A"
+                    }}
+                  </td>
+                  <td>{{ medicine.discount * 100 | number : "1.0-0" }}%</td>
+                  <td>
+                    {{
+                      medicine.finalprice != null
+                        ? (medicine.finalprice | currency : "EGP")
+                        : "N/A"
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      medicine.medicine.drug === "Prescription"
+                        ? "Cosmetic"
+                        : medicine.medicine.drug === "Over the Counter"
+                        ? "Drug"
+                        : "N/A"
+                    }}
+                  </td>
+                  <td>
+                    <!-- Action buttons commented out as Excel upload is the only method
+                    <div class="btn-group" role="group">
+                      <button
+                        class="btn btn-sm btn-primary"
+                        (click)="showEditMedicineForm(medicine)"
+                        title="Edit"
+                      >
+                        <i class="la la-edit"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-danger"
+                        (click)="deleteMedicine(medicine.medicineId)"
+                        title="Delete"
+                      >
+                        <i class="la la-trash"></i>
+                      </button>
+                    </div>
+                    -->
+                    <span class="text-muted"
+                      >Use Excel upload to manage medicines</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- No Medicines Message -->
+          <div
+            *ngIf="!loadingMedicines && medicines.length === 0"
+            class="text-center py-4"
+          >
+            <i class="la la-pills" style="font-size: 3rem; color: #ccc"></i>
+            <p class="mt-2 text-muted">No medicines found in this warehouse</p>
+            <p class="text-muted">
+              Use the Excel upload above to add medicines to this warehouse
+            </p>
+            <!-- Add First Medicine Button - Commented out as Excel upload is the only method
+            <button
+              class="btn btn-primary mt-3"
+              (click)="showAddMedicineForm()"
+            >
+              <i class="la la-plus"></i> Add First Medicine
+            </button>
+            -->
+          </div>
+
+          <!-- Pagination -->
+          <div
+            *ngIf="
+              medicines.length > 0 &&
+              Math.ceil(medicinesTotalCount / medicinesPageSize) > 1
+            "
+            class="d-flex justify-content-center mt-4"
+          >
+            <nav>
+              <ul class="pagination">
+                <li
+                  class="page-item"
+                  [class.disabled]="medicinesCurrentPage === 1"
+                >
+                  <a
+                    class="page-link"
+                    (click)="onMedicinesPageChange(medicinesCurrentPage - 1)"
+                    style="cursor: pointer"
+                    >Previous</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  *ngFor="let page of getPageNumbers()"
+                  [class.active]="page === medicinesCurrentPage"
+                >
+                  <a
+                    class="page-link"
+                    (click)="onMedicinesPageChange(page)"
+                    style="cursor: pointer"
+                    >{{ page }}</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  [class.disabled]="
+                    medicinesCurrentPage ===
+                    Math.ceil(medicinesTotalCount / medicinesPageSize)
+                  "
+                >
+                  <a
+                    class="page-link"
+                    (click)="onMedicinesPageChange(medicinesCurrentPage + 1)"
+                    style="cursor: pointer"
+                    >Next</a
+                  >
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Medicine Modal - Commented out as Excel upload is the only method -->
+  <!--
+  <div
+    *ngIf="showMedicineForm"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="la la-{{ selectedMedicine ? 'edit' : 'plus' }}"></i>
+            {{ selectedMedicine ? "Edit" : "Add" }} Medicine
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeMedicineForm()"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: white;
+            "
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="medicineForm" (ngSubmit)="onSubmitMedicine()">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="medicineId" class="form-label"
+                    >Medicine ID *</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="medicineId"
+                    formControlName="medicineId"
+                    min="1"
+                    required
+                  />
+                  <div
+                    *ngIf="
+                      medicineForm.get('medicineId')?.invalid &&
+                      medicineForm.get('medicineId')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Medicine ID is required
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="quantity" class="form-label">Quantity *</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="quantity"
+                    formControlName="quantity"
+                    min="0"
+                    required
+                  />
+                  <div
+                    *ngIf="
+                      medicineForm.get('quantity')?.invalid &&
+                      medicineForm.get('quantity')?.touched
+                    "
+                    class="text-danger"
+                  >
+                    Quantity must be 0 or greater
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="discount" class="form-label">Discount *</label>
+              <input
+                type="number"
+                class="form-control"
+                id="discount"
+                formControlName="discount"
+                min="0"
+                max="1"
+                step="0.01"
+                required
+              />
+              <div
+                *ngIf="
+                  medicineForm.get('discount')?.invalid &&
+                  medicineForm.get('discount')?.touched
+                "
+                class="text-danger"
+              >
+                Discount must be between 0 and 1 (0% to 100%)
+              </div>
+              <small class="form-text text-muted">
+                Enter discount as decimal (e.g., 0.1 for 10%, 0.25 for 25%)
+              </small>
+            </div>
+
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="closeMedicineForm()"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="medicineForm.invalid"
+              >
+                {{ selectedMedicine ? "Update" : "Add" }} Medicine
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  -->
+
+  <!-- Orders Modal -->
+  <div
+    *ngIf="showOrders"
+    class="modal fade show"
+    style="display: block; z-index: 1050"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="la la-shopping-cart"></i>
+            Warehouse Orders
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeOrders()"
+            style="
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: white;
+            "
+          >
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Order Status Filter -->
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label for="orderStatusFilter" class="form-label"
+                >Filter by Status:</label
+              >
+              <select
+                id="orderStatusFilter"
+                class="form-control"
+                [(ngModel)]="orderStatusFilter"
+                (change)="onOrderFiltersChange()"
+              >
+                <option value="All">All</option>
+                <option value="Ordered">Ordered</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Returned">Returned</option>
+                <option value="Preparing">Preparing</option>
+                <option value="Delivering">Delivering</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="orderDateFilter" class="form-label"
+                >Order Date:</label
+              >
+              <input
+                id="orderDateFilter"
+                type="date"
+                class="form-control"
+                [(ngModel)]="orderDateFilter"
+                (change)="onOrderFiltersChange()"
+              />
+            </div>
+          </div>
+          <!-- Loading Spinner -->
+          <div *ngIf="loadingOrders" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading orders...</p>
+          </div>
+
+          <!-- Orders Table -->
+          <div *ngIf="!loadingOrders" class="table-responsive">
+            <table class="table table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Order ID</th>
+                  <th>Pharmacy</th>
+                  <th>Order Date</th>
+                  <th>Total Price</th>
+                  <th>Quantity</th>
+                  <th>Status</th>
+                  <th>Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let order of filteredOrders">
+                  <td>
+                    <strong>#{{ order.id }}</strong>
+                  </td>
+                  <td>
+                    <div>{{ order.customerName }}</div>
+                    <small class="text-muted"
+                      >Pharmacy ID: {{ order.items[0].id || "N/A" }}</small
+                    >
+                  </td>
+                  <td>{{ formatDate(order.orderDate) }}</td>
+                  <td>{{ order.totalAmount | currency : "EGP" }}</td>
+                  <td>
+                    <span class="badge badge-info"
+                      >{{ order.items.length }} items</span
+                    >
+                  </td>
+                  <td>
+                    <span
+                      class="badge badge-{{ getStatusColor(order.status) }}"
+                    >
+                      {{ order.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      class="btn btn-sm btn-info"
+                      (click)="showInvoice(order.id)"
+                      title="View Invoice Items"
+                    >
+                      <i class="la la-list"></i> {{ order.items.length }} items
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div
+            *ngIf="Math.ceil(ordersTotalCount / ordersPageSize) > 1"
+            class="d-flex justify-content-center mt-4"
+          >
+            <nav>
+              <ul class="pagination">
+                <li
+                  class="page-item"
+                  [class.disabled]="ordersCurrentPage === 1"
+                >
+                  <a
+                    class="page-link"
+                    (click)="onOrdersPageChange(ordersCurrentPage - 1)"
+                    style="cursor: pointer"
+                    >Previous</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  *ngFor="let page of getPageNumbers()"
+                  [class.active]="page === ordersCurrentPage"
+                >
+                  <a
+                    class="page-link"
+                    (click)="onOrdersPageChange(page)"
+                    style="cursor: pointer"
+                    >{{ page }}</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  [class.disabled]="
+                    ordersCurrentPage ===
+                    Math.ceil(ordersTotalCount / ordersPageSize)
+                  "
+                >
+                  <a
+                    class="page-link"
+                    (click)="onOrdersPageChange(ordersCurrentPage + 1)"
+                    style="cursor: pointer"
+                    >Next</a
+                  >
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div
+  *ngIf="showSuccessModal"
+  class="modal fade show"
+  style="display: block; z-index: 1060"
+  tabindex="-1"
+>
+  <div class="modal-dialog" style="max-width: 400px; margin: 100px auto">
+    <div class="modal-content" style="width: 400px; height: 400px">
+      <div
+        class="modal-header bg-success text-white text-center"
+        style="border-radius: 8px 8px 0 0"
+      >
+        <h5 class="modal-title mx-auto">
+          <i class="la la-check-circle"></i>
+          Success
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          (click)="closeSuccessModal()"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="modal-body text-center d-flex flex-column justify-content-center align-items-center"
+        style="height: 300px"
+      >
+        <i
+          class="la la-check-circle text-success mb-3"
+          style="font-size: 4rem"
+        ></i>
+        <h6 class="text-success mb-2">Success!</h6>
+        <p class="mb-0">{{ successMessage }}</p>
+      </div>
+      <div class="modal-footer justify-content-center" style="border-top: none">
+        <button
+          type="button"
+          class="btn btn-success px-4"
+          (click)="closeSuccessModal()"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div
+  *ngIf="showErrorModal"
+  class="modal fade show"
+  style="display: block; z-index: 1060"
+  tabindex="-1"
+>
+  <div class="modal-dialog" style="max-width: 400px; margin: 100px auto">
+    <div class="modal-content" style="width: 400px; height: 400px">
+      <div
+        class="modal-header bg-danger text-white text-center"
+        style="border-radius: 8px 8px 0 0"
+      >
+        <h5 class="modal-title mx-auto">
+          <i class="la la-exclamation-triangle"></i>
+          Error
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          (click)="closeErrorModal()"
+        >
+          ×
+        </button>
+      </div>
+      <div
+        class="modal-body text-center d-flex flex-column justify-content-center align-items-center"
+        style="height: 300px"
+      >
+        <i
+          class="la la-exclamation-triangle text-danger mb-3"
+          style="font-size: 4rem"
+        ></i>
+        <h6 class="text-danger mb-2">Error!</h6>
+        <p class="mb-0">{{ errorMessage }}</p>
+      </div>
+      <div class="modal-footer justify-content-center" style="border-top: none">
+        <button
+          type="button"
+          class="btn btn-danger px-4"
+          (click)="closeErrorModal()"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div
+  *ngIf="
+    showDetails || showAddForm || showEditForm || showMedicines || showOrders
+  "
+  class="modal-backdrop fade show"
+></div>

@@ -1,0 +1,42 @@
+// Custom styles for sidebar active state
+.sidebar .nav .nav-item.active a {
+  color: #1d7af3 !important;
+  font-weight: 700;
+  background: rgba(29, 122, 243, 0.1);
+}
+
+.sidebar .nav .nav-item.active a i {
+  color: #1d7af3 !important;
+}
+
+.sidebar .nav .nav-item.active a p {
+  color: #1d7af3 !important;
+}
+
+// Consistent icon size for all sidebar items (active and inactive)
+.sidebar .nav .nav-item a i {
+  font-size: 16px !important;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+// Enhanced hover effect for better visual feedback
+.sidebar .nav .nav-item a:hover {
+  background: rgba(29, 122, 243, 0.05);
+  color: #1d7af3;
+}
+
+.sidebar .nav .nav-item a:hover i {
+  color: #1d7af3;
+}
+
+.sidebar .nav .nav-item a:hover p {
+  color: #1d7af3;
+}
+
+// Smooth transition for color changes
+.sidebar .nav .nav-item a,
+.sidebar .nav .nav-item a i,
+.sidebar .nav .nav-item a p {
+  transition: all 0.3s ease;
+}

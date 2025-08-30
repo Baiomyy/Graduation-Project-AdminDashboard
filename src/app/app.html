@@ -1,0 +1,14 @@
+<ng-container *ngIf="!isLoginRoute; else loginOnly">
+  <app-navbar></app-navbar>
+  <div class="wrapper" style="padding-top: 55px;">
+    <app-sidebar ngSkipHydration></app-sidebar>
+    <div class="main-panel">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #loginOnly>
+  <router-outlet></router-outlet>
+  
+</ng-template>
