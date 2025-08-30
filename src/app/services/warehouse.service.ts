@@ -258,12 +258,12 @@ export class WarehouseService {
       map((response) => {
         console.log('Warehouse API Response:', response);
         // Filter warehouses to only those with IsActive === true
-        const filteredItems = (response.items || []).filter(
-          (w) => w.isActive === true
-        );
+        // const filteredItems = (response.items || []).filter(
+        //   (w) => w.isActive === true
+        // );
         return {
           ...response,
-          items: filteredItems,
+          items: response.items,
         };
       }),
       catchError((error) => {
