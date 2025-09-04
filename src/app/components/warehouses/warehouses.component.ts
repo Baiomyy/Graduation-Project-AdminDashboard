@@ -1571,6 +1571,24 @@ export class Warehouses implements OnInit, OnDestroy {
   }
 
   // Utility methods
+  getWarehouseImageUrl(imageUrl?: string | null): string {
+    if (!imageUrl) return 'assets/img/profile.jpg';
+    const trimmed = String(imageUrl).trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    // Ensure we handle relative paths coming from backend
+    const base = 'http://www.pharmaatoncepredeploy.somee.com';
+    if (trimmed.startsWith('/')) {
+      return base + trimmed;
+    }
+    return `${base}/${trimmed}`;
+  }
+
+  onWarehouseImageError(event: Event): void {
+    const el = event.target as HTMLImageElement;
+    el.src = 'assets/img/profile.jpg';
+  }
   getStatusColor(status: string | boolean | undefined): string {
     if (!status) return 'secondary';
 

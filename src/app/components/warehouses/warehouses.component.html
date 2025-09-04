@@ -477,7 +477,8 @@
                     <td><strong>Image:</strong></td>
                     <td>
                       <img
-                        [src]="warehouseDetails.imageUrl"
+                        [src]="getWarehouseImageUrl(warehouseDetails.imageUrl)"
+                        (error)="onWarehouseImageError($event)"
                         alt="Warehouse Image"
                         style="max-width: 100px; max-height: 100px"
                       />
