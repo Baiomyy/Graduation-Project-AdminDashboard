@@ -35,7 +35,7 @@
           class="text-center py-4"
         >
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <!-- <span class="visually-hidden">Loading...</span> -->
           </div>
           <p class="mt-2">Loading invoice data...</p>
         </div>
@@ -121,7 +121,9 @@
             </div>
             <!-- New Pharmacy API Area Dropdown -->
             <div class="col-md-3">
-              <label for="pharmacyAreaFilter" class="form-label">Area of Distribution</label>
+              <label for="pharmacyAreaFilter" class="form-label"
+                >Area of Distribution</label
+              >
               <select
                 id="pharmacyAreaFilter"
                 class="form-control"
@@ -192,7 +194,7 @@
           <!-- Loading Spinner -->
           <div *ngIf="loading" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+              <!-- <span class="visually-hidden">Loading...</span> -->
             </div>
             <p class="mt-2">Loading warehouses...</p>
           </div>
@@ -401,7 +403,7 @@
         <div class="modal-body">
           <div *ngIf="loadingDetails" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+              <!-- <span class="visually-hidden">Loading...</span> -->
             </div>
             <p class="mt-2">Loading warehouse details...</p>
           </div>
@@ -605,7 +607,7 @@
                 Please enter a valid email address
               </div>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" *ngIf="!showEditForm">
               <label for="password" class="form-label">Password *</label>
               <input
                 type="text"
@@ -646,7 +648,7 @@
             </div>
 
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-6" *ngIf="!showEditForm">
                 <div class="mb-3">
                   <label for="pharmacyFormGovernorate" class="form-label"
                     >Governorate *</label
@@ -677,7 +679,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6" *ngIf="!showEditForm">
                 <div class="mb-3">
                   <label for="pharmacyFormArea" class="form-label"
                     >Warehouse Location Area *</label
@@ -757,11 +759,11 @@
               -->
             </div>
 
-            <div class="row">
+            <div class="row" *ngIf="!showEditForm">
               <div class="col-md-12">
                 <div class="mb-3">
                   <label for="imageUrl" class="form-label"
-                  >Warehouse Image</label
+                    >Warehouse Image</label
                   >
                   <input
                     type="file"
@@ -1156,7 +1158,7 @@
           <!-- Loading Spinner (moved below search/filter) -->
           <div *ngIf="loadingMedicines" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+              <!-- <span class="visually-hidden">Loading...</span> -->
             </div>
             <p class="mt-2">Loading medicines...</p>
           </div>
@@ -1518,7 +1520,7 @@
           <!-- Loading Spinner -->
           <div *ngIf="loadingOrders" class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+              <!-- <span class="visually-hidden">Loading...</span> -->
             </div>
             <p class="mt-2">Loading orders...</p>
           </div>

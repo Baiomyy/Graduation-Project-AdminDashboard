@@ -335,6 +335,56 @@ export class WarehouseService {
       .pipe(map((res: any) => res.body as Warehouse));
   }
 
+  // Update warehouse with FormData (for file uploads)
+  updateWarehouseWithFormData(
+    id: number,
+    formData: FormData
+  ): Observable<Warehouse> {
+    console.log('Service: updateWarehouseWithFormData called with ID:', id);
+    console.log('Service: FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}: ${value}`);
+    }
+    console.log('Service: Using endpoint:', `${this.updateUrl}/${id}`);
+    return this.http.put<Warehouse>(`${this.updateUrl}/${id}`, formData);
+  }
+
+  /**
+   * Update warehouse using JSON payload (new backend contract)
+   *
+   * Expected body schema:
+   * {
+   *   id: number,
+   *   name: string,
+   *   address: string,
+   *   isTrusted: boolean,
+   *   email: string,
+   *   phone: string,
+   *   wareHouseGovernates: [
+   *     { governateId: number, areas: [ { areaId: number, minmumPrice: number } ] }
+   *   ]
+   * }
+   */
+  updateWarehouseJson(
+    id: number,
+    body: {
+      id: number;
+      name: string;
+      address: string;
+      isTrusted: boolean;
+      email: string;
+      phone: string;
+      wareHouseGovernates: Array<{
+        governateId: number;
+        areas: Array<{ areaId: number; minmumPrice: number }>;
+      }>;
+    }
+  ): Observable<Warehouse> {
+    console.log('Service: updateWarehouseJson called with ID:', id);
+    console.log('Service: JSON payload:', body);
+    return this.http.put<Warehouse>(`${this.updateUrl}/${id}`, body);
+  }
+
   // Update warehouse
   updateWarehouse(
     id: number,
@@ -346,53 +396,34 @@ export class WarehouseService {
       }[];
     }
   ): Observable<Warehouse> {
-    // Map the data to match the API structure
-    let wareHouseAreas: { areaId: number; minmumPrice: number }[] = [];
-
-    // Use selectedWarehouseAreasWithPrice if available (from component), otherwise fall back to selectedAreas
-    if (
+    // Deprecated path retained for compatibility, but not used in component edit flow anymore.
+    // Delegate to updateWarehouseJson if enough data is present.
+    const areas =
       warehouse.selectedWarehouseAreasWithPrice &&
       warehouse.selectedWarehouseAreasWithPrice.length > 0
-    ) {
-      wareHouseAreas = warehouse.selectedWarehouseAreasWithPrice;
-    } else if (warehouse.selectedAreas) {
-      wareHouseAreas = warehouse.selectedAreas.map((areaId: number) => ({
-        areaId: areaId,
-        minmumPrice: 0, // Default minimum price
-      }));
-    }
-
-    const payload = {
-      id: id,
+        ? warehouse.selectedWarehouseAreasWithPrice
+        : (warehouse.selectedAreas || []).map((areaId: number) => ({
+            areaId,
+            minmumPrice: 0,
+          }));
+    const jsonBody: any = {
+      id,
       name: warehouse.name,
       address: warehouse.address,
-      governate: warehouse.governate,
       isTrusted:
         typeof warehouse.isTrusted === 'string'
           ? warehouse.isTrusted === 'true'
           : !!warehouse.isTrusted,
-      isWarehouseApproved: warehouse.isWarehouseApproved || true,
-      approvedByAdminId: warehouse.approvedByAdminId || '',
-      wareHouseAreas: wareHouseAreas,
+      email: warehouse.email,
       phone: warehouse.phone,
-      email: warehouse.email, // Added email to payload
-      imageUrl: 'string', // Always send ImageUrl with default value
-      password: (warehouse as any).password || '', // Add password to payload
+      // Note: wareHouseGovernates must be grouped by governateId by the caller for correctness.
+      // If not provided, send flat areas under a dummy governateId of 0 (backend should validate).
+      wareHouseGovernates: (warehouse as any).wareHouseGovernates || [
+        { governateId: 0, areas: areas },
+      ],
     };
-
-    console.log(
-      'Service: Selected areas (delivery areas):',
-      warehouse.selectedAreas
-    );
-    console.log(
-      'Service: Selected areas with prices:',
-      warehouse.selectedWarehouseAreasWithPrice
-    );
-    console.log('Service: Mapped wareHouseAreas:', wareHouseAreas);
-    console.log('Service: Updating warehouse with payload:', payload);
-    console.log('Service: Using endpoint:', `${this.updateUrl}/${id}`);
-
-    return this.http.put<Warehouse>(`${this.updateUrl}/${id}`, payload);
+    console.log('Service: updateWarehouse fallback JSON payload:', jsonBody);
+    return this.updateWarehouseJson(id, jsonBody);
   }
 
   // Delete warehouse

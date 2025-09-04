@@ -633,6 +633,10 @@ export class Warehouses implements OnInit, OnDestroy {
     this.selectedWarehouseAreasWithPrice = [];
     this.selectedDeliveryGovernorateIds = [];
     this.deliveryAreasByGovernorate = {};
+    // Ensure password is required in create mode
+    const pwdCtrl = this.warehouseForm.get('password');
+    pwdCtrl?.setValidators([Validators.required]);
+    pwdCtrl?.updateValueAndValidity();
     this.cd.detectChanges();
 
     // Fix dropdown text display after form is shown (only in browser)
@@ -659,10 +663,21 @@ export class Warehouses implements OnInit, OnDestroy {
       email: warehouse.email,
       governate: governorateId,
       imageUrl: warehouse.imageUrl,
-      password: warehouse.password || '', // Pre-fill with warehouse's password if available
+      password: '',
       isTrusted: warehouse.isTrusted,
       isWarehouseApproved: warehouse.isWarehouseApproved,
     });
+    // In edit mode, password is not required and no image upload is needed
+    const pwdCtrl = this.warehouseForm.get('password');
+    pwdCtrl?.clearValidators();
+    pwdCtrl?.updateValueAndValidity();
+    // In edit mode, user should not change governorate/location area → relax validators
+    const govCtrl = this.warehouseForm.get('governate');
+    govCtrl?.clearValidators();
+    govCtrl?.updateValueAndValidity();
+    const areaCtrl = this.warehouseForm.get('warehouseLocationArea');
+    areaCtrl?.clearValidators();
+    areaCtrl?.updateValueAndValidity();
     this.selectedWarehouseId = warehouse.id;
 
     // If warehouse has existing areas, select them
@@ -816,10 +831,10 @@ export class Warehouses implements OnInit, OnDestroy {
       (g) => g.id === governorateId
     );
     const governorateName = selectedGovernorate ? selectedGovernorate.name : '';
-  
+
     // Warehouse location AreaId comes directly from form (now numeric id)
     const areaId: number | null = formValue.warehouseLocationArea ?? null;
-  
+
     // Add the warehouse location area to selectedWarehouseAreasWithPrice if not already present
     let finalWareHouseAreas = [...this.selectedWarehouseAreasWithPrice];
     if ((!finalWareHouseAreas || finalWareHouseAreas.length === 0) && areaId) {
@@ -830,13 +845,13 @@ export class Warehouses implements OnInit, OnDestroy {
     ) {
       finalWareHouseAreas.push({ areaId: areaId, minmumPrice: 0 });
     }
-  
+
     // Group areas by governorate for WareHouseGovernatesJson format
     const areasByGovernorate = new Map<
       number,
       { AreaId: number; MinmumPrice: number }[]
     >();
-  
+
     finalWareHouseAreas.forEach((area) => {
       for (const govId of Object.keys(this.deliveryAreasByGovernorate)) {
         const govAreas = this.deliveryAreasByGovernorate[Number(govId)] || [];
@@ -852,14 +867,14 @@ export class Warehouses implements OnInit, OnDestroy {
         }
       }
     });
-  
-    const WareHouseGovernatesJson = Array.from(areasByGovernorate.entries()).map(
-      ([GovernateId, areas]) => ({
-        GovernateId,
-        Areas: areas,
-      })
-    );
-  
+
+    const WareHouseGovernatesJson = Array.from(
+      areasByGovernorate.entries()
+    ).map(([GovernateId, areas]) => ({
+      GovernateId,
+      Areas: areas,
+    }));
+
     // Debug logging before creating payload
     console.log('Creating warehouse with areas:', {
       selectedAreas: this.selectedWarehouseAreas,
@@ -867,7 +882,7 @@ export class Warehouses implements OnInit, OnDestroy {
       WareHouseGovernatesJson,
       governorate: governorateName,
     });
-  
+
     // ------------------ CREATE MODE ------------------
     if (!this.showEditForm || !this.selectedWarehouseId) {
       const fd = new FormData();
@@ -879,33 +894,40 @@ export class Warehouses implements OnInit, OnDestroy {
       fd.append('IsTrusted', String(!!formValue.isTrusted));
       if (governorateId != null) fd.append('GovId', String(governorateId));
       if (areaId != null) fd.append('AreaId', String(areaId));
-  
+
       // Append file if selected
       if (this.selectedWarehouseImageFile) {
-        fd.append('Photo', this.selectedWarehouseImageFile, this.selectedWarehouseImageFile.name);
+        fd.append(
+          'Photo',
+          this.selectedWarehouseImageFile,
+          this.selectedWarehouseImageFile.name
+        );
       }
-  
+
       // Append WareHouseGovernatesJson correctly
-      fd.append('WareHouseGovernatesJson', JSON.stringify(WareHouseGovernatesJson));
-  
+      fd.append(
+        'WareHouseGovernatesJson',
+        JSON.stringify(WareHouseGovernatesJson)
+      );
+
       // Debug dump of form data
       for (const [key, value] of fd.entries()) {
         console.log(key, value);
       }
-  
+
       console.log('Creating warehouse with FormData (per swagger)');
       this.warehouseService.createWarehouse(fd).subscribe({
         next: (newWarehouse) => {
           console.log('Warehouse created successfully:', newWarehouse);
           this.showSuccessMessage('Warehouse created successfully!');
           this.closeWarehouseForm();
-  
+
           if (newWarehouse && newWarehouse.id) {
             this.warehouses.unshift(newWarehouse);
             this.totalCount++;
             this.cd.detectChanges();
           }
-  
+
           setTimeout(() => {
             console.log('Refreshing warehouse list from server...');
             this.loadWarehouses();
@@ -914,51 +936,57 @@ export class Warehouses implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error creating warehouse:', error);
           console.error('Error details:', error.error);
-          this.showErrorMessage('Failed to create warehouse. Please try again.');
+          this.showErrorMessage(
+            'Failed to create warehouse. Please try again.'
+          );
         },
       });
     }
     // ------------------ EDIT MODE ------------------
     else {
-      let editPayload: any;
-  
-      if (this.selectedWarehouseImageFile) {
-        // Use FormData for edit with file
-        editPayload = new FormData();
-        editPayload.append('Name', formValue.name);
-        editPayload.append('Address', formValue.address);
-        editPayload.append('Phone', formValue.phone);
-        editPayload.append('Email', formValue.email);
-        editPayload.append('GovId', String(governorateId));
-        editPayload.append('IsTrusted', String(!!formValue.isTrusted));
-        editPayload.append('IsWarehouseApproved', String(!!formValue.isWarehouseApproved));
-        editPayload.append(
-          'WareHouseGovernatesJson',
-          JSON.stringify(WareHouseGovernatesJson)
-        );
-        editPayload.append('Photo', this.selectedWarehouseImageFile, this.selectedWarehouseImageFile.name);
-      } else {
-        // JSON object for edit without file
-        editPayload = {
-          Name: formValue.name,
-          Address: formValue.address,
-          Phone: formValue.phone,
-          Email: formValue.email,
-          GovId: governorateId,
-          IsTrusted: formValue.isTrusted || false,
-          IsWarehouseApproved: formValue.isWarehouseApproved || false,
-          WareHouseGovernatesJson: WareHouseGovernatesJson,
-        };
-      }
-  
+      // Build JSON payload per new backend contract; no password or image on update
+      // Reuse areasByGovernorate computed above to build camelCase JSON structure
+      const wareHouseGovernates = Array.from(areasByGovernorate.entries()).map(
+        ([govId, areas]) => ({
+          governateId: Number(govId),
+          areas: areas.map((a: any) => ({
+            areaId: a.AreaId,
+            minmumPrice: a.MinmumPrice,
+            wareHouseId: this.selectedWarehouseId!,
+          })),
+        })
+      );
+
+      const jsonBody = {
+        id: this.selectedWarehouseId!,
+        name: formValue.name,
+        address: formValue.address,
+        isTrusted: !!formValue.isTrusted,
+        email: formValue.email,
+        phone: formValue.phone,
+        wareHouseGovernates,
+      };
+
+      console.log(
+        'Component: About to call updateWarehouseJson with body:',
+        jsonBody
+      );
       this.warehouseService
-        .updateWarehouse(this.selectedWarehouseId, editPayload)
+        .updateWarehouseJson(this.selectedWarehouseId!, jsonBody)
         .subscribe({
           next: (updatedWarehouse) => {
             console.log('Warehouse updated:', updatedWarehouse);
             this.showSuccessMessage('Warehouse updated successfully!');
             this.closeWarehouseForm();
             this.loadWarehouses();
+
+            if (this.showDetails && this.selectedWarehouseId) {
+              setTimeout(() => {
+                if (this.selectedWarehouseId) {
+                  this.loadWarehouseDetails(this.selectedWarehouseId);
+                }
+              }, 500);
+            }
           },
           error: (error) => {
             console.error('Error updating warehouse:', error);
@@ -969,7 +997,6 @@ export class Warehouses implements OnInit, OnDestroy {
         });
     }
   }
-  
 
   deleteWarehouse(warehouseId: number): void {
     if (confirm('Are you sure you want to delete this warehouse?')) {
@@ -1021,12 +1048,14 @@ export class Warehouses implements OnInit, OnDestroy {
   }
 
   loadWarehouseDetails(warehouseId: number): void {
+    console.log('Loading warehouse details for ID:', warehouseId);
     this.loadingDetails = true;
     this.warehouseDetails = null;
     this.cd.detectChanges();
 
     this.warehouseService.getWarehouseCustomById(warehouseId).subscribe({
       next: (details) => {
+        console.log('Warehouse details received:', details);
         this.ngZone.run(() => {
           this.warehouseDetails = details;
           this.loadingDetails = false;
