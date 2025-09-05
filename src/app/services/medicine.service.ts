@@ -86,19 +86,61 @@ export class MedicineService {
   }
 
   // Create new medicine
-  createMedicine(medicine: Medicine): Observable<Medicine> {
-    console.log('Service: Creating medicine:', medicine);
-    return this.http.post<Medicine>(`${this.baseUrl}/CreateMedicine`, medicine);
+  // createMedicine(medicine: Medicine): Observable<Medicine> {
+  //   console.log('Service: Creating medicine:', medicine);
+  //   return this.http.post<Medicine>(`${this.baseUrl}/CreateMedicine`, medicine);
+  // }   -----------THE OLD ONE THAT NOT HANDLE IMAGE UPLOAD
+
+
+  createMedicine(formValue: any, selectedImageFile: File | null): Observable<Medicine> {
+    const fd = new FormData();
+  
+    // Required fields
+    fd.append('EnglishMedicineName', formValue.englishMedicineName);
+    fd.append('ArabicMedicineName', formValue.arabicMedicineName);
+    fd.append('Description', formValue.description);
+    fd.append('Drug', formValue.drug.toString());
+    fd.append('Price', formValue.price.toString());
+  
+    // Optional file upload
+    if (selectedImageFile) {
+      fd.append('Photo', selectedImageFile, selectedImageFile.name);
+    }
+  
+    // Optional ImageUrl (backend validates as [Url])
+    if (formValue.imageUrl) {
+      fd.append('ImageUrl', formValue.imageUrl);
+    }
+  
+    console.log('Service: Creating medicine with FormData:', fd);
+    return this.http.post<Medicine>(`${this.baseUrl}/CreateMedicine`, fd);
   }
 
   // Update medicine using the correct backend endpoint
-  updateMedicine(id: number, medicine: any): Observable<Medicine> {
-    console.log('Service: Updating medicine with ID:', id, 'Data:', medicine);
-    // Use PUT /UpdateMedicine/{id} as per backend API
-    return this.http.put<Medicine>(
-      `${this.baseUrl}/UpdateMedicine/${id}`,
-      medicine
-    );
+  updateMedicine(id: number, formValue: any, selectedImageFile: File | null): Observable<Medicine> {
+    const fd = new FormData();
+  
+    // Required fields
+    fd.append('Id', id.toString());
+    fd.append('EnglishMedicineName', formValue.englishMedicineName);
+    fd.append('ArabicMedicineName', formValue.arabicMedicineName);
+    fd.append('Description', formValue.description);
+    fd.append('Drug', formValue.drug.toString());
+    fd.append('Price', formValue.price.toString());
+  
+    // Optional file upload
+    if (selectedImageFile) {
+      fd.append('Photo', selectedImageFile, selectedImageFile.name);
+    }
+  
+    // Optional ImageUrl (in case we don’t upload a new photo)
+    if (formValue.imageUrl) {
+      fd.append('ImageUrl', formValue.imageUrl);
+    }
+  
+    console.log('Service: Updating medicine with FormData:', fd);
+  
+    return this.http.put<Medicine>(`${this.baseUrl}/UpdateMedicine/${id}`, fd);
   }
 
   // Delete medicine (working endpoint)
