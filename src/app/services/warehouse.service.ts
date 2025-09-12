@@ -687,9 +687,9 @@ export class WarehouseService {
             .map((medicine: ExcelMedicineData) => {
               // Handle discount as percentage (0-100) or decimal (0-1)
               let discount = medicine.Discount;
-              if (discount > 1) {
+              if (discount < 1) {
                 // If discount is greater than 1, treat it as percentage and convert to decimal
-                discount = discount / 100;
+                discount = discount * 100;
               }
 
               const result = {

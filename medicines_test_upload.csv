@@ -6,4 +6,4 @@ ID,product_name,product_name_en,drug,IsExist,Discount,Quantity
 17,فينيرجان,Phenergan,0,1,0.4,100
 18,رانتاك,Rantac,0,1,0,100
 19,ستوجيرون,Stugeron,0,1,0.6,100
-20,فينتولين,Ventolin,1,1,0,100
+20,فينتولين,Ventolin,1,1,50,100
