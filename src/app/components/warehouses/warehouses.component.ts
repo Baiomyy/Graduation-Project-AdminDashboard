@@ -1578,7 +1578,7 @@ export class Warehouses implements OnInit, OnDestroy {
       return trimmed;
     }
     // Ensure we handle relative paths coming from backend
-    const base = 'http://www.pharmaatoncepredeploy.somee.com';
+    const base = 'http://atoncepharma.somee.com';
     if (trimmed.startsWith('/')) {
       return base + trimmed;
     }

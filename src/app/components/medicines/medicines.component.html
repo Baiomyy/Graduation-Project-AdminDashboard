@@ -223,7 +223,7 @@
                   <td>
                     <ng-container *ngIf="medicine.imageUrl; else noImage">
                       <img 
-                        [src]="'http://www.pharmaatoncepredeploy.somee.com/' + medicine.imageUrl" 
+                        [src]="'http://atoncepharma.somee.com/' + medicine.imageUrl" 
                         alt="Medicine image" 
                         style="max-width: 100px; max-height: 80px;" />
                     </ng-container>
@@ -430,7 +430,7 @@
               <div *ngIf="!medicineImagePreview && editingMedicine?.imageUrl" class="mt-2">
                 <label>Current Image:</label>
                 <img
-                  [src]="'http://www.pharmaatoncepredeploy.somee.com/'+editingMedicine?.imageUrl"
+                  [src]="'http://atoncepharma.somee.com/'+editingMedicine?.imageUrl"
                   alt="Current medicine image"
                   style="max-width: 100%; max-height: 100px"
                 />

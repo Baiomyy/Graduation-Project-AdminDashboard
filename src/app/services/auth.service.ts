@@ -16,12 +16,12 @@ export interface LoginResponseDto {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://www.pharmaatoncepredeploy.somee.com/api/Admin/Login';
+  private readonly apiUrl = 'http://atoncepharma.somee.com/api/Admin/Login';
   private readonly tokenKey = 'auth_token';
 
   login(payload: LoginRequestDto): Observable<LoginResponseDto> {
     return this.http.post<LoginResponseDto>(this.apiUrl, payload).pipe(
-      tap((res) => {
+      tap((res: LoginResponseDto) => {
         if (res && res.success && res.token) {
           localStorage.setItem(this.tokenKey, res.token);
         }

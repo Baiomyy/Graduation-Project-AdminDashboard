@@ -26,7 +26,7 @@ export interface OrderApiResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
-  private baseUrl = 'http://www.pharmaatoncepredeploy.somee.com/api/Order';
+  private baseUrl = 'http://atoncepharma.somee.com/api/Order';
 
   constructor(private http: HttpClient) {}
 
