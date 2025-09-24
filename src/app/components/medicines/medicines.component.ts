@@ -58,7 +58,7 @@ export class Medicines implements OnInit {
       this.selectedMedicineImageFile = input.files[0];
 
       const reader = new FileReader();
-      reader.onload = e => this.medicineImagePreview = reader.result;
+      reader.onload = (e) => (this.medicineImagePreview = reader.result);
       reader.readAsDataURL(this.selectedMedicineImageFile);
     }
   }
@@ -72,7 +72,7 @@ export class Medicines implements OnInit {
       next: (medicines) => {
         console.log('Medicines loaded:', medicines);
         this.medicines = medicines;
-        this.filteredMedicines = [...medicines];
+        this.applyFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -85,48 +85,49 @@ export class Medicines implements OnInit {
     });
   }
 
-  searchMedicines(): void {
-    console.log('Searching medicines with term:', this.searchTerm);
-    if (!this.searchTerm.trim()) {
-      this.filteredMedicines = [...this.medicines];
-      return;
-    }
+  applyFilters(): void {
+    // Apply search across the full dataset, then sort the result
+    const trimmed = this.searchTerm.trim().toLowerCase();
+    let result = !trimmed
+      ? [...this.medicines]
+      : this.medicines.filter((medicine) => {
+          const en = medicine.englishMedicineName || '';
+          const ar = medicine.arabicMedicineName || '';
+          const desc = medicine.description || '';
+          return (
+            en.toLowerCase().includes(trimmed) ||
+            ar.toLowerCase().includes(trimmed) ||
+            desc.toLowerCase().includes(trimmed)
+          );
+        });
 
-    const searchLower = this.searchTerm.toLowerCase();
-    this.filteredMedicines = this.medicines.filter(
-      (medicine) =>
-        medicine.englishMedicineName?.toLowerCase().includes(searchLower) ||
-        medicine.arabicMedicineName?.toLowerCase().includes(searchLower) ||
-        medicine.description?.toLowerCase().includes(searchLower)
-    );
-    this.cdr.detectChanges();
-  }
-
-  filterMedicines(): void {
-    console.log('Filtering medicines by:', this.sortBy);
-    if (!this.sortBy) {
-      this.filteredMedicines = [...this.medicines];
-      return;
-    }
-
-    this.filteredMedicines = [...this.medicines].sort((a, b) => {
-      switch (this.sortBy) {
-        case 'priceAsc':
-          return (a.price || 0) - (b.price || 0);
-        case 'priceDesc':
-          return (b.price || 0) - (a.price || 0);
-        case 'nameAsc':
-          return (a.englishMedicineName || '').localeCompare(
+    switch (this.sortBy) {
+      case 'priceAsc':
+        result = result.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'priceDesc':
+        result = result.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'nameAsc':
+        result = result.sort((a, b) =>
+          (a.englishMedicineName || '').localeCompare(
             b.englishMedicineName || ''
-          );
-        case 'nameDesc':
-          return (b.englishMedicineName || '').localeCompare(
+          )
+        );
+        break;
+      case 'nameDesc':
+        result = result.sort((a, b) =>
+          (b.englishMedicineName || '').localeCompare(
             a.englishMedicineName || ''
-          );
-        default:
-          return 0;
-      }
-    });
+          )
+        );
+        break;
+      default:
+        // keep current order
+        break;
+    }
+
+    this.filteredMedicines = result;
     this.cdr.detectChanges();
   }
 
@@ -177,117 +178,131 @@ export class Medicines implements OnInit {
       imageUrl: '',
     });
   }
-addMedicine(): void {
-  console.log('Adding medicine, form valid:', this.medicineForm.valid);
+  addMedicine(): void {
+    console.log('Adding medicine, form valid:', this.medicineForm.valid);
 
-  if (this.medicineForm.valid) {
-    const formValue = this.medicineForm.value;
+    if (this.medicineForm.valid) {
+      const formValue = this.medicineForm.value;
 
-    console.log('New medicine form values being sent:', JSON.stringify(formValue, null, 2));
-    this.loading = true;
+      console.log(
+        'New medicine form values being sent:',
+        JSON.stringify(formValue, null, 2)
+      );
+      this.loading = true;
 
-    this.medicineService.createMedicine(formValue, this.selectedMedicineImageFile).subscribe({
-      next: (medicine) => {
-        console.log('Medicine created successfully:', medicine);
+      this.medicineService
+        .createMedicine(formValue, this.selectedMedicineImageFile)
+        .subscribe({
+          next: (medicine) => {
+            console.log('Medicine created successfully:', medicine);
 
-        // Add to bottom of both arrays
-        this.medicines.push(medicine);
-        this.filteredMedicines.push(medicine);
+            // Add to source array and re-apply filters
+            this.medicines = [...this.medicines, medicine];
+            this.applyFilters();
 
-        this.cancelForm();
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error creating medicine:', error);
-        console.error('Error details:', {
-          status: error.status,
-          statusText: error.statusText,
-          error: error.error,
-          message: error.message,
-          url: error.url
+            this.cancelForm();
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error creating medicine:', error);
+            console.error('Error details:', {
+              status: error.status,
+              statusText: error.statusText,
+              error: error.error,
+              message: error.message,
+              url: error.url,
+            });
+
+            // Handle different types of errors
+            let errorMessage = 'Failed to add medicine';
+            if (error.status === 400) {
+              if (typeof error.error === 'string') {
+                errorMessage = `Validation error: ${error.error}`;
+              } else if (error.error && typeof error.error === 'object') {
+                errorMessage = `Validation error: ${JSON.stringify(
+                  error.error
+                )}`;
+              } else {
+                errorMessage =
+                  'Invalid input data. Please check all required fields.';
+              }
+            } else if (error.status === 500) {
+              errorMessage = 'Server error. Please try again later.';
+            } else {
+              errorMessage = `Error: ${
+                error.message || 'Unknown error occurred'
+              }`;
+            }
+
+            this.error = errorMessage;
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
         });
-
-        // Handle different types of errors
-        let errorMessage = 'Failed to add medicine';
-        if (error.status === 400) {
-          if (typeof error.error === 'string') {
-            errorMessage = `Validation error: ${error.error}`;
-          } else if (error.error && typeof error.error === 'object') {
-            errorMessage = `Validation error: ${JSON.stringify(error.error)}`;
-          } else {
-            errorMessage = 'Invalid input data. Please check all required fields.';
-          }
-        } else if (error.status === 500) {
-          errorMessage = 'Server error. Please try again later.';
-        } else {
-          errorMessage = `Error: ${error.message || 'Unknown error occurred'}`;
-        }
-
-        this.error = errorMessage;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-    });
-  } else {
-    console.log('Form is invalid:', this.medicineForm.errors);
-    console.log('Form values:', this.medicineForm.value);
-    console.log('Form status:', this.medicineForm.status);
+    } else {
+      console.log('Form is invalid:', this.medicineForm.errors);
+      console.log('Form values:', this.medicineForm.value);
+      console.log('Form status:', this.medicineForm.status);
+    }
   }
-}
 
+  updateMedicine(): void {
+    console.log('Updating medicine, form valid:', this.medicineForm.valid);
 
-updateMedicine(): void {
-  console.log('Updating medicine, form valid:', this.medicineForm.valid);
+    if (this.medicineForm.valid && this.editingMedicine?.medicineId) {
+      const formValue = this.medicineForm.value;
 
-  if (this.medicineForm.valid && this.editingMedicine?.medicineId) {
-    const formValue = this.medicineForm.value;
+      console.log('Form value before sending:', formValue);
+      this.loading = true;
 
-    console.log('Form value before sending:', formValue);
-    this.loading = true;
+      this.medicineService
+        .updateMedicine(
+          this.editingMedicine.medicineId,
+          formValue,
+          this.selectedMedicineImageFile // ⬅️ image file from file input
+        )
+        .subscribe({
+          next: (medicine) => {
+            console.log('Medicine updated successfully:', medicine);
 
-    this.medicineService.updateMedicine(
-      this.editingMedicine.medicineId,
-      formValue,
-      this.selectedMedicineImageFile // ⬅️ image file from file input
-    ).subscribe({
-      next: (medicine) => {
-        console.log('Medicine updated successfully:', medicine);
+            // Update in both arrays
+            const index = this.medicines.findIndex(
+              (m) => m.medicineId === medicine.medicineId
+            );
+            if (index !== -1) {
+              this.medicines[index] = medicine;
+            }
 
-        // Update in both arrays
-        const index = this.medicines.findIndex(
-          (m) => m.medicineId === medicine.medicineId
-        );
-        if (index !== -1) {
-          this.medicines[index] = medicine;
-        }
+            const filteredIndex = this.filteredMedicines.findIndex(
+              (m) => m.medicineId === medicine.medicineId
+            );
+            if (filteredIndex !== -1) {
+              this.filteredMedicines[filteredIndex] = medicine;
+            }
 
-        const filteredIndex = this.filteredMedicines.findIndex(
-          (m) => m.medicineId === medicine.medicineId
-        );
-        if (filteredIndex !== -1) {
-          this.filteredMedicines[filteredIndex] = medicine;
-        }
+            // Re-apply filters to ensure global search/sort stays correct
+            this.applyFilters();
 
-        this.cancelForm();
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Failed to update medicine:', error);
-        this.error = 'Failed to update medicine: ' + (error.message || error);
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-    });
-  } else {
-    console.log(
-      'Form is invalid or no editing medicine:',
-      this.medicineForm.errors
-    );
+            this.cancelForm();
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Failed to update medicine:', error);
+            this.error =
+              'Failed to update medicine: ' + (error.message || error);
+            this.loading = false;
+            this.cdr.detectChanges();
+          },
+        });
+    } else {
+      console.log(
+        'Form is invalid or no editing medicine:',
+        this.medicineForm.errors
+      );
+    }
   }
-}
-
 
   deleteMedicine(id: number): void {
     console.log('Deleting medicine with ID:', id);
@@ -300,10 +315,7 @@ updateMedicine(): void {
           // Instantly remove the deleted row from the UI and force array reference change
           this.medicines = this.medicines.filter((m) => m.medicineId !== id);
           this.medicines = [...this.medicines];
-          this.filteredMedicines = this.filteredMedicines.filter(
-            (m) => m.medicineId !== id
-          );
-          this.filteredMedicines = [...this.filteredMedicines];
+          this.applyFilters();
           this.loading = false;
           this.cdr.detectChanges();
         },
