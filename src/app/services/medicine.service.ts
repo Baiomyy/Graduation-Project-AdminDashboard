@@ -31,58 +31,44 @@ export class MedicineService {
 
   constructor(private http: HttpClient) {}
 
-  // Get all medicines without pagination (we'll fetch all pages)
-  getAllMedicines(): Observable<Medicine[]> {
-    console.log('Service: Getting all medicines');
-    return new Observable((observer) => {
-      const allMedicines: Medicine[] = [];
-      let currentPage = 1;
-      const pageSize = 100; // Large page size to minimize API calls
+  // Get medicines by page with optional search/sort query (server-side)
+  getMedicinesPage(
+    pageNumber: number,
+    pageSize: number,
+    searchTerm?: string,
+    sort?: string
+  ): Observable<PaginatedResponse<Medicine>> {
+    let params = new HttpParams()
+      .set('pageNumber', pageNumber.toString())
+      .set('size', pageSize.toString());
 
-      const fetchPage = () => {
-        const params = new HttpParams()
-          .set('pageNumber', currentPage.toString())
-          .set('size', pageSize.toString());
+    // Prefer search when present, otherwise apply sort, else plain list
+    if (searchTerm && searchTerm.trim().length > 0) {
+      params = params
+        .set('searchTerm', searchTerm.trim())
+        .set('pageNumber', pageNumber.toString())
+        .set('size', pageSize.toString());
+      return this.http.get<PaginatedResponse<Medicine>>(
+        `${this.baseUrl}/SearchMedicines`,
+        { params }
+      );
+    }
 
-        console.log(
-          `Service: Fetching page ${currentPage} with params:`,
-          params.toString()
-        );
+    if (sort && sort.length > 0) {
+      params = params
+        .set('sort', sort)
+        .set('pageNumber', pageNumber.toString())
+        .set('size', pageSize.toString());
+      return this.http.get<PaginatedResponse<Medicine>>(
+        `${this.baseUrl}/FilterMedicines`,
+        { params }
+      );
+    }
 
-        this.http
-          .get<PaginatedResponse<Medicine>>(
-            `${this.baseUrl}/GetAllMedicinesPaginated`,
-            { params }
-          )
-          .subscribe({
-            next: (response) => {
-              console.log(`Service: Page ${currentPage} response:`, response);
-              allMedicines.push(...response.items);
-
-              if (currentPage < response.totalPages) {
-                currentPage++;
-                fetchPage();
-              } else {
-                console.log(
-                  'Service: All pages fetched, total medicines:',
-                  allMedicines.length
-                );
-                observer.next(allMedicines);
-                observer.complete();
-              }
-            },
-            error: (error) => {
-              console.error(
-                `Service: Error fetching page ${currentPage}:`,
-                error
-              );
-              observer.error(error);
-            },
-          });
-      };
-
-      fetchPage();
-    });
+    return this.http.get<PaginatedResponse<Medicine>>(
+      `${this.baseUrl}/GetAllMedicinesPaginated`,
+      { params }
+    );
   }
 
   // Create new medicine
@@ -91,35 +77,41 @@ export class MedicineService {
   //   return this.http.post<Medicine>(`${this.baseUrl}/CreateMedicine`, medicine);
   // }   -----------THE OLD ONE THAT NOT HANDLE IMAGE UPLOAD
 
-
-  createMedicine(formValue: any, selectedImageFile: File | null): Observable<Medicine> {
+  createMedicine(
+    formValue: any,
+    selectedImageFile: File | null
+  ): Observable<Medicine> {
     const fd = new FormData();
-  
+
     // Required fields
     fd.append('EnglishMedicineName', formValue.englishMedicineName);
     fd.append('ArabicMedicineName', formValue.arabicMedicineName);
     fd.append('Description', formValue.description);
     fd.append('Drug', formValue.drug.toString());
     fd.append('Price', formValue.price.toString());
-  
+
     // Optional file upload
     if (selectedImageFile) {
       fd.append('Photo', selectedImageFile, selectedImageFile.name);
     }
-  
+
     // Optional ImageUrl (backend validates as [Url])
     if (formValue.imageUrl) {
       fd.append('ImageUrl', formValue.imageUrl);
     }
-  
+
     console.log('Service: Creating medicine with FormData:', fd);
     return this.http.post<Medicine>(`${this.baseUrl}/CreateMedicine`, fd);
   }
 
   // Update medicine using the correct backend endpoint
-  updateMedicine(id: number, formValue: any, selectedImageFile: File | null): Observable<Medicine> {
+  updateMedicine(
+    id: number,
+    formValue: any,
+    selectedImageFile: File | null
+  ): Observable<Medicine> {
     const fd = new FormData();
-  
+
     // Required fields
     fd.append('Id', id.toString());
     fd.append('EnglishMedicineName', formValue.englishMedicineName);
@@ -127,19 +119,19 @@ export class MedicineService {
     fd.append('Description', formValue.description);
     fd.append('Drug', formValue.drug.toString());
     fd.append('Price', formValue.price.toString());
-  
+
     // Optional file upload
     if (selectedImageFile) {
       fd.append('Photo', selectedImageFile, selectedImageFile.name);
     }
-  
+
     // Optional ImageUrl (in case we don’t upload a new photo)
     if (formValue.imageUrl) {
       fd.append('ImageUrl', formValue.imageUrl);
     }
-  
+
     console.log('Service: Updating medicine with FormData:', fd);
-  
+
     return this.http.put<Medicine>(`${this.baseUrl}/UpdateMedicine/${id}`, fd);
   }
 
@@ -149,29 +141,24 @@ export class MedicineService {
     return this.http.delete(`${this.baseUrl}/${id}`);
   }
 
-  // Search medicines - using the same base URL
-  searchMedicines(searchTerm: string): Observable<PaginatedResponse<Medicine>> {
+  // Search medicines with pagination
+  searchMedicines(
+    searchTerm: string,
+    pageNumber: number,
+    pageSize: number
+  ): Observable<PaginatedResponse<Medicine>> {
     console.log('Service: Searching medicines with term:', searchTerm);
-    const params = new HttpParams().set('searchTerm', searchTerm);
+    const params = new HttpParams()
+      .set('searchTerm', searchTerm)
+      .set('pageNumber', pageNumber.toString())
+      .set('size', pageSize.toString());
     return this.http.get<PaginatedResponse<Medicine>>(
       `${this.baseUrl}/SearchMedicines`,
-      {
-        params,
-      }
+      { params }
     );
   }
 
-  // Filter medicines - using the same base URL
-  filterMedicines(sort: string): Observable<PaginatedResponse<Medicine>> {
-    console.log('Service: Filtering medicines with sort:', sort);
-    const params = new HttpParams().set('sort', sort);
-    return this.http.get<PaginatedResponse<Medicine>>(
-      `${this.baseUrl}/FilterMedicines`,
-      {
-        params,
-      }
-    );
-  }
+  // Deprecated: server-side filter sort removed in favor of fast client-side sort for current page
 
   // Get medicines by area
   getMedicinesByArea(areaId: number): Observable<Medicine[]> {

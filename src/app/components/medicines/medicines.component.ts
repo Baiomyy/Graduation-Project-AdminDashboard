@@ -27,6 +27,12 @@ export class Medicines implements OnInit {
   searchTerm = '';
   sortBy = '';
 
+  // Server-side pagination state
+  pageNumber = 1;
+  pageSize = 100;
+  totalCount = 0;
+  totalPages = 0;
+
   medicineForm: FormGroup;
 
   medicineImagePreview: string | ArrayBuffer | null = null;
@@ -49,7 +55,7 @@ export class Medicines implements OnInit {
 
   ngOnInit(): void {
     console.log('Medicines component initialized');
-    this.loadMedicines();
+    this.loadPage(1);
   }
 
   onMedicineImageSelected(event: Event): void {
@@ -63,72 +69,66 @@ export class Medicines implements OnInit {
     }
   }
 
-  loadMedicines(): void {
-    console.log('Loading medicines...');
+  loadPage(page: number): void {
+    console.log(
+      'Loading page:',
+      page,
+      'size:',
+      this.pageSize,
+      'search:',
+      this.searchTerm,
+      'sort:',
+      this.sortBy
+    );
     this.loading = true;
     this.error = '';
 
-    this.medicineService.getAllMedicines().subscribe({
-      next: (medicines) => {
-        console.log('Medicines loaded:', medicines);
-        this.medicines = medicines;
-        this.applyFilters();
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error loading medicines:', error);
-        this.error = 'Failed to load medicines: ' + (error.message || error);
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-    });
+    this.medicineService
+      .getMedicinesPage(page, this.pageSize, this.searchTerm, this.sortBy)
+      .subscribe({
+        next: (response) => {
+          console.log('Medicines page loaded:', response);
+          this.pageNumber = response.pageNumber;
+          this.totalPages = response.totalPages;
+          this.totalCount = response.totalCount;
+          // Keep a copy of current page in both arrays for compatibility
+          this.medicines = response.items;
+          this.filteredMedicines = [...response.items];
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error loading medicines page:', error);
+          this.error = 'Failed to load medicines: ' + (error.message || error);
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+      });
   }
 
-  applyFilters(): void {
-    // Apply search across the full dataset, then sort the result
-    const trimmed = this.searchTerm.trim().toLowerCase();
-    let result = !trimmed
-      ? [...this.medicines]
-      : this.medicines.filter((medicine) => {
-          const en = medicine.englishMedicineName || '';
-          const ar = medicine.arabicMedicineName || '';
-          const desc = medicine.description || '';
-          return (
-            en.toLowerCase().includes(trimmed) ||
-            ar.toLowerCase().includes(trimmed) ||
-            desc.toLowerCase().includes(trimmed)
-          );
-        });
+  // Trigger a fresh server query starting from page 1 when search changes
+  onSearchChange(): void {
+    this.pageNumber = 1;
+    this.loadPage(this.pageNumber);
+  }
 
-    switch (this.sortBy) {
-      case 'priceAsc':
-        result = result.sort((a, b) => (a.price || 0) - (b.price || 0));
-        break;
-      case 'priceDesc':
-        result = result.sort((a, b) => (b.price || 0) - (a.price || 0));
-        break;
-      case 'nameAsc':
-        result = result.sort((a, b) =>
-          (a.englishMedicineName || '').localeCompare(
-            b.englishMedicineName || ''
-          )
-        );
-        break;
-      case 'nameDesc':
-        result = result.sort((a, b) =>
-          (b.englishMedicineName || '').localeCompare(
-            a.englishMedicineName || ''
-          )
-        );
-        break;
-      default:
-        // keep current order
-        break;
+  // Trigger a fresh server query starting from page 1 when sort changes
+  onSortChange(): void {
+    // Server-side sort across dataset
+    this.pageNumber = 1;
+    this.loadPage(this.pageNumber);
+  }
+
+  goToPreviousPage(): void {
+    if (this.pageNumber > 1 && !this.loading) {
+      this.loadPage(this.pageNumber - 1);
     }
+  }
 
-    this.filteredMedicines = result;
-    this.cdr.detectChanges();
+  goToNextPage(): void {
+    if (this.pageNumber < this.totalPages && !this.loading) {
+      this.loadPage(this.pageNumber + 1);
+    }
   }
 
   showAddMedicineForm(): void {
@@ -196,9 +196,8 @@ export class Medicines implements OnInit {
           next: (medicine) => {
             console.log('Medicine created successfully:', medicine);
 
-            // Add to source array and re-apply filters
-            this.medicines = [...this.medicines, medicine];
-            this.applyFilters();
+            // Reload current page to reflect new data (server is source of truth)
+            this.loadPage(this.pageNumber);
 
             this.cancelForm();
             this.loading = false;
@@ -266,23 +265,8 @@ export class Medicines implements OnInit {
           next: (medicine) => {
             console.log('Medicine updated successfully:', medicine);
 
-            // Update in both arrays
-            const index = this.medicines.findIndex(
-              (m) => m.medicineId === medicine.medicineId
-            );
-            if (index !== -1) {
-              this.medicines[index] = medicine;
-            }
-
-            const filteredIndex = this.filteredMedicines.findIndex(
-              (m) => m.medicineId === medicine.medicineId
-            );
-            if (filteredIndex !== -1) {
-              this.filteredMedicines[filteredIndex] = medicine;
-            }
-
-            // Re-apply filters to ensure global search/sort stays correct
-            this.applyFilters();
+            // Reload current page to ensure data consistency
+            this.loadPage(this.pageNumber);
 
             this.cancelForm();
             this.loading = false;
@@ -312,10 +296,12 @@ export class Medicines implements OnInit {
       this.medicineService.deleteMedicine(id).subscribe({
         next: () => {
           console.log('Medicine deleted successfully');
-          // Instantly remove the deleted row from the UI and force array reference change
-          this.medicines = this.medicines.filter((m) => m.medicineId !== id);
-          this.medicines = [...this.medicines];
-          this.applyFilters();
+          // Reload current page; if last item on page removed, adjust page if needed
+          const nextPage =
+            this.medicines.length === 1 && this.pageNumber > 1
+              ? this.pageNumber - 1
+              : this.pageNumber;
+          this.loadPage(nextPage);
           this.loading = false;
           this.cdr.detectChanges();
         },
