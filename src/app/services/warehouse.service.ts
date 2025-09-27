@@ -675,7 +675,7 @@ export class WarehouseService {
           // Filter medicines where IsExist = 1 and transform to API payload
           const medicinesToUpdate = excelData
             .filter((medicine: ExcelMedicineData) => {
-              const isValid = medicine.IsExist === 1;
+              const isValid = Number(medicine.IsExist) === 1;
               if (!isValid) {
                 console.log(
                   'Service: Skipping medicine with IsExist = 0:',
