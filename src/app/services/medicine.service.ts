@@ -31,18 +31,16 @@ export class MedicineService {
 
   constructor(private http: HttpClient) {}
 
-  // Get medicines by page with optional search/sort query (server-side)
+  // Get medicines by page with optional search query (server-side)
   getMedicinesPage(
     pageNumber: number,
     pageSize: number,
-    searchTerm?: string,
-    sort?: string
+    searchTerm?: string
   ): Observable<PaginatedResponse<Medicine>> {
     let params = new HttpParams()
       .set('pageNumber', pageNumber.toString())
       .set('size', pageSize.toString());
 
-    // Prefer search when present, otherwise apply sort, else plain list
     if (searchTerm && searchTerm.trim().length > 0) {
       params = params
         .set('searchTerm', searchTerm.trim())
@@ -50,17 +48,6 @@ export class MedicineService {
         .set('size', pageSize.toString());
       return this.http.get<PaginatedResponse<Medicine>>(
         `${this.baseUrl}/SearchMedicines`,
-        { params }
-      );
-    }
-
-    if (sort && sort.length > 0) {
-      params = params
-        .set('sort', sort)
-        .set('pageNumber', pageNumber.toString())
-        .set('size', pageSize.toString());
-      return this.http.get<PaginatedResponse<Medicine>>(
-        `${this.baseUrl}/FilterMedicines`,
         { params }
       );
     }

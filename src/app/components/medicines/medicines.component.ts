@@ -25,8 +25,6 @@ export class Medicines implements OnInit {
   showEditForm = false;
   editingMedicine: Medicine | null = null;
   searchTerm = '';
-  sortBy = '';
-
   // Server-side pagination state
   pageNumber = 1;
   pageSize = 100;
@@ -76,15 +74,13 @@ export class Medicines implements OnInit {
       'size:',
       this.pageSize,
       'search:',
-      this.searchTerm,
-      'sort:',
-      this.sortBy
+      this.searchTerm
     );
     this.loading = true;
     this.error = '';
 
     this.medicineService
-      .getMedicinesPage(page, this.pageSize, this.searchTerm, this.sortBy)
+      .getMedicinesPage(page, this.pageSize, this.searchTerm)
       .subscribe({
         next: (response) => {
           console.log('Medicines page loaded:', response);
@@ -108,13 +104,6 @@ export class Medicines implements OnInit {
 
   // Trigger a fresh server query starting from page 1 when search changes
   onSearchChange(): void {
-    this.pageNumber = 1;
-    this.loadPage(this.pageNumber);
-  }
-
-  // Trigger a fresh server query starting from page 1 when sort changes
-  onSortChange(): void {
-    // Server-side sort across dataset
     this.pageNumber = 1;
     this.loadPage(this.pageNumber);
   }
