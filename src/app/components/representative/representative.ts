@@ -486,6 +486,8 @@ export class RepresentativeComponent implements OnInit, OnDestroy {
 
     this.deleteIndex = actualIndex;
     this.showDeleteModal = true;
+    this.cdr.detectChanges();
+
   }
 
   closeDeleteModal(): void {
