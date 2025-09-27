@@ -1,12 +1,12 @@
 {
   "/api/Order": {
-    "target": "http://atoncepharma.somee.com",
+    "target": "https://atoncepharma.somee.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/api": {
-    "target": "http://atoncepharma.somee.com",
+    "target": "https://atoncepharma.somee.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",

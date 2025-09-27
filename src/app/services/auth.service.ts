@@ -16,7 +16,7 @@ export interface LoginResponseDto {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://atoncepharma.somee.com/api/Admin/Login';
+  private readonly apiUrl = 'https://atoncepharma.somee.com/api/Admin/Login';
   private readonly tokenKey = 'auth_token';
 
   login(payload: LoginRequestDto): Observable<LoginResponseDto> {
